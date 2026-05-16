@@ -11,6 +11,7 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from .glossary import GlossaryBuilder
+from .graph import DependencyGraphBuilder, GraphContext
 from .handlers.base import create_default_registry
 from .llm import LLMClient, LLMConfig, LLMProvider
 from .models import (
@@ -71,6 +72,7 @@ class PipelineResult:
     """Result of running the translation pipeline."""
 
     scan_result: ScanResult | None = None
+    graph_context: GraphContext | None = None
     glossary: Glossary | None = None
     tasks: list[TranslationTask] = field(default_factory=list)
     generation_result: GenerationResult | None = None
@@ -203,6 +205,7 @@ class TranslationPipeline:
             self.config.source_locale,
             self.config.target_locale,
         )
+        self.graph_builder = DependencyGraphBuilder()
         self.glossary_builder = GlossaryBuilder(
             self.llm_client,
             self.config.source_locale,
@@ -358,6 +361,10 @@ class TranslationPipeline:
                 logger.info("Step 1: Scanning modpack...")
                 result.scan_result = await self.scanner.scan(modpack_path)
                 file_pairs = result.scan_result.all_translation_pairs
+
+            # Step 1.5: Scan mod metadata and dependency graph
+            logger.info("Step 1.5: Scanning mod dependency metadata...")
+            result.graph_context = await self.graph_builder.scan_modpack(modpack_path)
 
             if not file_pairs:
                 logger.warning("No language files found!")
