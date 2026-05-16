@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QByteArray, Qt, QThread, QTimer, QUrl, Signal
-from PySide6.QtGui import QImage, QPixmap, QResizeEvent
+from PySide6.QtGui import QImage, QMouseEvent, QPixmap, QResizeEvent, QShowEvent
 from PySide6.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
 from PySide6.QtWidgets import (
     QFileDialog,
@@ -222,12 +222,12 @@ class ModpackCard(QFrame):
                 """
             )
 
-    def mousePressEvent(self, event: object) -> None:
+    def mousePressEvent(self, event: QMouseEvent) -> None:
         """Handle mouse press."""
         super().mousePressEvent(event)
         self.cardClicked.emit(self.modpack)
 
-    def mouseDoubleClickEvent(self, event: object) -> None:
+    def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:
         """Handle double click."""
         super().mouseDoubleClickEvent(event)
         self.cardDoubleClicked.emit(self.modpack)
@@ -468,7 +468,7 @@ class ModpackSelectionView(QWidget):
         super().resizeEvent(event)
         self._reflow_cards()
 
-    def showEvent(self, event: object) -> None:
+    def showEvent(self, event: QShowEvent) -> None:
         """Handle show event to ensure proper layout."""
         super().showEvent(event)
         # Delay reflow to ensure layout is fully initialized
@@ -519,8 +519,9 @@ class ModpackSelectionView(QWidget):
 
         while self.grid_layout.count():
             item = self.grid_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()
 
     def _scan_launchers(self) -> None:
         """Scan common launcher paths for modpacks."""

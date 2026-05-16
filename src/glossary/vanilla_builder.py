@@ -10,12 +10,15 @@ import asyncio
 import json
 import logging
 from pathlib import Path
+from typing import Literal
 
 import aiofiles
 
 from ..models import Glossary, TermRule
 
 logger = logging.getLogger(__name__)
+
+TermCategory = Literal["item", "block", "ui", "entity", "effect", "biome", "other"]
 
 
 class VanillaGlossaryBuilder:
@@ -143,7 +146,7 @@ class VanillaGlossaryBuilder:
             List of term rules
         """
         terms: list[TermRule] = []
-        categories = {
+        categories: dict[str, TermCategory] = {
             "block": "block",
             "item": "item",
             "entity": "entity",
@@ -173,7 +176,7 @@ class VanillaGlossaryBuilder:
                 continue
 
             # Determine category from key
-            category = "other"
+            category: TermCategory = "other"
             for prefix, cat in categories.items():
                 if key.startswith(prefix):
                     category = cat

@@ -246,7 +246,10 @@ class BatchTranslator:
             )
 
             batch_result = await self._translate_batch(batch)
-            results.update(batch_result)
+            for key, value in batch_result.items():
+                if isinstance(value, Exception):
+                    raise value
+                results[key] = value
 
         return results
 
@@ -294,7 +297,7 @@ class BatchTranslator:
                     "All texts in batch %d are placeholder-only, skipping translation",
                     batch.batch_id,
                 )
-            return placeholder_only
+            return dict(placeholder_only)
 
         # Build prompt
         texts_for_llm = {key: pt.protected for key, pt in protected_texts.items()}

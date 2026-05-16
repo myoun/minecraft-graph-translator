@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field, ValidationError
@@ -105,8 +106,6 @@ class GlossaryBuilder:
         Returns:
             Vanilla glossary or None if not found
         """
-        from pathlib import Path
-
         # Build filename for current language pair
         filename = f"vanilla_glossary_{self.source_locale}_{self.target_locale}.json"
 
@@ -640,7 +639,7 @@ class GlossaryBuilder:
 
         return Glossary()
 
-    async def _load_file(self, path: str | None) -> Mapping[str, str]:
+    async def _load_file(self, path: str | Path | None) -> Mapping[str, str]:
         """Load a language file using the appropriate parser.
 
         Args:
@@ -652,9 +651,7 @@ class GlossaryBuilder:
         if path is None:
             return {}
 
-        from pathlib import Path as PathLib
-
-        file_path = PathLib(path)
+        file_path = Path(path)
 
         parser = BaseParser.create_parser(file_path)
         if parser is None:

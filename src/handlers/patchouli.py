@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar, cast
 
 from ..parsers import BaseParser, DumpError, ParseError
 from .base import ContentHandler
@@ -97,7 +97,7 @@ class PatchouliHandler(ContentHandler):
 
         try:
             raw_data = await parser.parse()
-            data = dict(raw_data)
+            data = cast(dict[str, object], dict(raw_data))
         except (ParseError, OSError) as e:
             logger.error("Failed to parse %s: %s", path, e)
             return {}
@@ -145,13 +145,13 @@ class PatchouliHandler(ContentHandler):
                     entries[full_key] = value
 
             elif isinstance(value, dict):
-                self._extract_from_dict(value, entries, full_key)
+                self._extract_from_dict(cast(dict[str, object], value), entries, full_key)
 
             elif isinstance(value, list):
                 for i, item in enumerate(value):
                     item_key = f"{full_key}[{i}]"
                     if isinstance(item, dict):
-                        self._extract_from_dict(item, entries, item_key)
+                        self._extract_from_dict(cast(dict[str, object], item), entries, item_key)
                     elif (
                         isinstance(item, str)
                         and self._should_translate_key(full_key)
@@ -175,7 +175,7 @@ class PatchouliHandler(ContentHandler):
 
         try:
             raw_data = await parser.parse()
-            data = dict(raw_data)
+            data = cast(dict[str, object], dict(raw_data))
         except (ParseError, OSError) as e:
             logger.error("Failed to parse %s: %s", path, e)
             return
@@ -186,10 +186,11 @@ class PatchouliHandler(ContentHandler):
         if "pages" in data and isinstance(data["pages"], list):
             for i, page in enumerate(data["pages"]):
                 if isinstance(page, dict):
-                    for key in list(page.keys()):
+                    page_data = cast(dict[str, object], page)
+                    for key in list(page_data.keys()):
                         full_key = f"pages[{i}].{key}"
                         if full_key in translations:
-                            page[key] = translations[full_key]
+                            page_data[key] = translations[full_key]
                             modified = True
 
         # Apply to other fields
@@ -208,7 +209,7 @@ class PatchouliHandler(ContentHandler):
             return
 
         try:
-            await output_parser.dump(data)
+            await output_parser.dump(cast("Mapping[str, str]", data))
             logger.debug("Applied translations to: %s", target_path.name)
         except (DumpError, OSError) as e:
             logger.error("Failed to write %s: %s", target_path, e)
@@ -235,17 +236,18 @@ class PatchouliHandler(ContentHandler):
                     modified = True
 
             elif isinstance(value, dict):
-                if self._apply_recursive(value, translations, full_key):
+                if self._apply_recursive(cast(dict[str, object], value), translations, full_key):
                     modified = True
 
             elif isinstance(value, list):
+                list_value = cast(list[object], value)
                 for i, item in enumerate(value):
                     item_key = f"{full_key}[{i}]"
                     if isinstance(item, str) and item_key in translations:
-                        data[key][i] = translations[item_key]  # type: ignore[index]
+                        list_value[i] = translations[item_key]
                         modified = True
                     elif isinstance(item, dict):
-                        if self._apply_recursive(item, translations, item_key):
+                        if self._apply_recursive(cast(dict[str, object], item), translations, item_key):
                             modified = True
 
         return modified

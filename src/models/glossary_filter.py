@@ -102,7 +102,9 @@ class GlossaryFilter:
                         multi_word_map.setdefault(lowered, []).append(i)
 
         if multi_word_map:
-            sorted_aliases = sorted(multi_word_map, key=len, reverse=True)
+            sorted_aliases: list[str] = sorted(
+                multi_word_map.keys(), key=lambda alias: len(alias), reverse=True
+            )
             pattern = re.compile(
                 r"\b(?:" + "|".join(re.escape(a) for a in sorted_aliases) + r")\b"
             )
@@ -147,7 +149,9 @@ class GlossaryFilter:
                 continue
 
         if multi_word_map:
-            sorted_aliases = sorted(multi_word_map, key=len, reverse=True)
+            sorted_aliases: list[str] = sorted(
+                multi_word_map.keys(), key=lambda alias: len(alias), reverse=True
+            )
             pattern = re.compile(
                 r"\b(?:" + "|".join(re.escape(a) for a in sorted_aliases) + r")\b"
             )

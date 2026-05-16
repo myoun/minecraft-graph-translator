@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QEasingCurve, QPropertyAnimation, Qt
+from PySide6.QtCore import QEvent, QEasingCurve, QPropertyAnimation, Qt
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
 from qfluentwidgets import (
     BodyLabel,
@@ -59,7 +60,7 @@ class WelcomeCard(CardWidget):
 
         # Icon
         self.icon_label = QLabel()
-        self.icon_label.setPixmap(icon.icon(color=Qt.GlobalColor.white).pixmap(64, 64))
+        self.icon_label.setPixmap(icon.icon(color=QColor("white")).pixmap(64, 64))
         self.icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # Title
@@ -88,21 +89,22 @@ class WelcomeCard(CardWidget):
         self._hover_animation.setDuration(200)
         self._hover_animation.setEasingCurve(QEasingCurve.Type.OutCubic)
 
-    def enterEvent(self, event: object) -> None:
-        """Handle mouse enter - scale up."""
-        super().enterEvent(event)
-        # Subtle scale effect
-        current_geo = self.geometry()
-        target_geo = current_geo.adjusted(-5, -5, 5, 5)
-        self._hover_animation.setStartValue(current_geo)
-        self._hover_animation.setEndValue(target_geo)
-        self._hover_animation.start()
+    def event(self, event: QEvent) -> bool:
+        """Handle hover animation without overriding qfluentwidgets hooks."""
+        if event.type() == QEvent.Type.Enter:
+            self._animate_hover(True)
+        elif event.type() == QEvent.Type.Leave:
+            self._animate_hover(False)
 
-    def leaveEvent(self, event: object) -> None:
-        """Handle mouse leave - scale down."""
-        super().leaveEvent(event)
+        return super().event(event)
+
+    def _animate_hover(self, entered: bool) -> None:
         current_geo = self.geometry()
-        target_geo = current_geo.adjusted(5, 5, -5, -5)
+        target_geo = (
+            current_geo.adjusted(-5, -5, 5, 5)
+            if entered
+            else current_geo.adjusted(5, 5, -5, -5)
+        )
         self._hover_animation.setStartValue(current_geo)
         self._hover_animation.setEndValue(target_geo)
         self._hover_animation.start()

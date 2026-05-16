@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from dotenv import load_dotenv
 from PySide6.QtCore import Qt, Signal
@@ -19,6 +19,9 @@ from PySide6.QtWidgets import (
 
 from .config import get_config
 from .i18n import get_translator, set_language
+
+if TYPE_CHECKING:
+    from src.models import LanguageFilePair
 
 logger = logging.getLogger(__name__)
 
@@ -347,7 +350,7 @@ class MainWindow(QMainWindow):
 
         logger.info("Loaded %d file pairs into category selection", len(file_pairs))
 
-    def _on_files_selected(self, selected_files: list[object]) -> None:
+    def _on_files_selected(self, selected_files: list[LanguageFilePair]) -> None:
         """Handle file selection - start translation.
 
         Args:
@@ -378,7 +381,7 @@ class MainWindow(QMainWindow):
         self.translation_worker = TranslationWorker(
             modpack_path,
             output_path,
-            selected_files,  # type: ignore[arg-type]
+            selected_files,
             dict(self.state["pipeline_config"]),
         )
         self.translation_worker.progressUpdate.connect(self._on_translation_progress)

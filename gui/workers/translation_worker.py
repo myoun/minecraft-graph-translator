@@ -61,6 +61,26 @@ class TranslationWorker(QThread):
         self._last_update_time = 0.0
         self._update_throttle = 0.0  # No throttle - always emit for batch progress
 
+    def _config_str(self, key: str, default: str = "") -> str:
+        value = self.config.get(key, default)
+        return value if isinstance(value, str) else default
+
+    def _config_optional_str(self, key: str) -> str | None:
+        value = self.config.get(key)
+        return value if isinstance(value, str) and value else None
+
+    def _config_int(self, key: str, default: int) -> int:
+        value = self.config.get(key, default)
+        if isinstance(value, int | float | str):
+            return int(value)
+        return default
+
+    def _config_float(self, key: str, default: float) -> float:
+        value = self.config.get(key, default)
+        if isinstance(value, int | float | str):
+            return float(value)
+        return default
+
     def run(self) -> None:
         """Run the translation pipeline."""
         try:
@@ -69,20 +89,20 @@ class TranslationWorker(QThread):
             logger.info("Starting translation: %d files", len(self.selected_files))
 
             # Create pipeline config
-            rpm = int(self.config.get("requests_per_minute", 0))
-            tpm = int(self.config.get("tokens_per_minute", 0))
+            rpm = self._config_int("requests_per_minute", 0)
+            tpm = self._config_int("tokens_per_minute", 0)
             pipeline_config = PipelineConfig(
-                source_locale=str(self.config.get("source_locale", "en_us")),
-                target_locale=str(self.config.get("target_locale", "ko_kr")),
+                source_locale=self._config_str("source_locale", "en_us"),
+                target_locale=self._config_str("target_locale", "ko_kr"),
                 llm_provider=LLMProvider[
-                    str(self.config.get("llm_provider", "ollama")).upper()
+                    self._config_str("llm_provider", "ollama").upper()
                 ],
-                llm_model=str(self.config.get("llm_model", "qwen2.5:14b")),
-                llm_temperature=float(self.config.get("llm_temperature", 0.1)),
-                llm_base_url=self.config.get("llm_base_url"),  # 추가됨
-                llm_api_key=self.config.get("llm_api_key"),  # 추가됨
-                max_concurrent=int(self.config.get("max_concurrent", 15)),
-                batch_size=int(self.config.get("batch_size", 30)),
+                llm_model=self._config_str("llm_model", "qwen2.5:14b"),
+                llm_temperature=self._config_float("llm_temperature", 0.1),
+                llm_base_url=self._config_optional_str("llm_base_url"),
+                llm_api_key=self._config_optional_str("llm_api_key"),
+                max_concurrent=self._config_int("max_concurrent", 15),
+                batch_size=self._config_int("batch_size", 30),
                 requests_per_minute=rpm if rpm > 0 else None,  # 0 = no limit
                 tokens_per_minute=tpm if tpm > 0 else None,  # 0 = no limit
                 skip_glossary=bool(self.config.get("skip_glossary", False)),

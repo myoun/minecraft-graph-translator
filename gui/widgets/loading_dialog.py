@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QDialog, QVBoxLayout
+from PySide6.QtGui import QCloseEvent, QShowEvent
+from PySide6.QtWidgets import QDialog, QVBoxLayout, QWidget
 from qfluentwidgets import BodyLabel, IndeterminateProgressBar, SubtitleLabel
 
 
@@ -11,7 +12,7 @@ class LoadingDialog(QDialog):
     """Simple loading dialog with progress bar."""
 
     def __init__(
-        self, title: str = "", message: str = "", parent: object = None
+        self, title: str = "", message: str = "", parent: QWidget | None = None
     ) -> None:
         """Initialize loading dialog.
 
@@ -68,12 +69,12 @@ class LoadingDialog(QDialog):
         """
         self.message_label.setText(message)
 
-    def showEvent(self, event: object) -> None:
+    def showEvent(self, event: QShowEvent) -> None:
         """Handle show event."""
         super().showEvent(event)
         self.progress_bar.start()
 
-    def closeEvent(self, event: object) -> None:
+    def closeEvent(self, event: QCloseEvent) -> None:
         """Handle close event."""
         self.progress_bar.stop()
         super().closeEvent(event)

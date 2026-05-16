@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar, cast
 
 from ..parsers import BaseParser, DumpError, ParseError
 from .base import ContentHandler
@@ -74,7 +74,7 @@ class PuffishSkillsHandler(ContentHandler):
             return {}
 
         entries: dict[str, str] = {}
-        self._extract_recursive(dict(raw_data), entries, "")
+        self._extract_recursive(cast(dict[str, object], dict(raw_data)), entries, "")
 
         logger.debug(
             "Extracted %d entries from PuffishSkills file: %s",
@@ -91,7 +91,8 @@ class PuffishSkillsHandler(ContentHandler):
     ) -> None:
         """Recursively extract translatable strings."""
         if isinstance(data, dict):
-            for key, value in data.items():
+            dict_data = cast(dict[str, object], data)
+            for key, value in dict_data.items():
                 full_key = f"{prefix}.{key}" if prefix else key
                 self._extract_recursive(value, entries, full_key)
 
@@ -120,7 +121,7 @@ class PuffishSkillsHandler(ContentHandler):
 
         try:
             raw_data = await parser.parse()
-            data = dict(raw_data)
+            data = cast(dict[str, object], dict(raw_data))
         except (ParseError, OSError) as e:
             logger.error("Failed to parse %s: %s", path, e)
             return
@@ -139,7 +140,7 @@ class PuffishSkillsHandler(ContentHandler):
             return
 
         try:
-            await output_parser.dump(data)
+            await output_parser.dump(cast("Mapping[str, str]", data))
             logger.debug("Applied translations to: %s", target_path.name)
         except (DumpError, OSError) as e:
             logger.error("Failed to write %s: %s", target_path, e)
@@ -163,11 +164,11 @@ class PuffishSkillsHandler(ContentHandler):
                     modified = True
 
             elif isinstance(value, dict):
-                if self._apply_recursive(value, translations, full_key):
+                if self._apply_recursive(cast(dict[str, object], value), translations, full_key):
                     modified = True
 
             elif isinstance(value, list):
-                if self._apply_list(value, translations, full_key):
+                if self._apply_list(cast(list[object], value), translations, full_key):
                     modified = True
 
         return modified
@@ -190,11 +191,11 @@ class PuffishSkillsHandler(ContentHandler):
                     modified = True
 
             elif isinstance(item, dict):
-                if self._apply_recursive(item, translations, item_key):
+                if self._apply_recursive(cast(dict[str, object], item), translations, item_key):
                     modified = True
 
             elif isinstance(item, list):
-                if self._apply_list(item, translations, item_key):
+                if self._apply_list(cast(list[object], item), translations, item_key):
                     modified = True
 
         return modified

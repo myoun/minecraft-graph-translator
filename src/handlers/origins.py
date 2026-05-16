@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar, cast
 
 from ..parsers import BaseParser, DumpError, ParseError
 from .base import ContentHandler
@@ -70,7 +70,7 @@ class OriginsHandler(ContentHandler):
             return {}
 
         entries: dict[str, str] = {}
-        self._extract_recursive(dict(raw_data), entries, "")
+        self._extract_recursive(cast(dict[str, object], dict(raw_data)), entries, "")
 
         logger.debug(
             "Extracted %d entries from Origins file: %s", len(entries), path.name
@@ -106,7 +106,7 @@ class OriginsHandler(ContentHandler):
                 entries[key] = value
 
         elif isinstance(value, dict):
-            self._extract_recursive(value, entries, key)
+            self._extract_recursive(cast(dict[str, object], value), entries, key)
 
         elif isinstance(value, list):
             for i, item in enumerate(value):
@@ -129,7 +129,7 @@ class OriginsHandler(ContentHandler):
 
         try:
             raw_data = await parser.parse()
-            data = dict(raw_data)
+            data = cast(dict[str, object], dict(raw_data))
         except (ParseError, OSError) as e:
             logger.error("Failed to parse %s: %s", path, e)
             return
@@ -150,7 +150,7 @@ class OriginsHandler(ContentHandler):
             return
 
         try:
-            await output_parser.dump(data)
+            await output_parser.dump(cast("Mapping[str, str]", data))
             logger.debug("Applied translations to: %s", target_path.name)
         except (DumpError, OSError) as e:
             logger.error("Failed to write %s: %s", target_path, e)
@@ -174,11 +174,11 @@ class OriginsHandler(ContentHandler):
                     modified = True
 
             elif isinstance(value, dict):
-                if self._apply_recursive(value, translations, full_key):
+                if self._apply_recursive(cast(dict[str, object], value), translations, full_key):
                     modified = True
 
             elif isinstance(value, list):
-                if self._apply_list(value, translations, full_key):
+                if self._apply_list(cast(list[object], value), translations, full_key):
                     modified = True
 
         return modified
@@ -201,11 +201,11 @@ class OriginsHandler(ContentHandler):
                     modified = True
 
             elif isinstance(item, dict):
-                if self._apply_recursive(item, translations, item_key):
+                if self._apply_recursive(cast(dict[str, object], item), translations, item_key):
                     modified = True
 
             elif isinstance(item, list):
-                if self._apply_list(item, translations, item_key):
+                if self._apply_list(cast(list[object], item), translations, item_key):
                     modified = True
 
         return modified

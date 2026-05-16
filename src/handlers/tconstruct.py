@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar, cast
 
 from ..parsers import BaseParser, DumpError, ParseError
 from .base import ContentHandler
@@ -53,7 +53,7 @@ class TConstructHandler(ContentHandler):
 
         try:
             raw_data = await parser.parse()
-            data = dict(raw_data)
+            data = cast(dict[str, object], dict(raw_data))
         except (ParseError, OSError) as e:
             logger.error("Failed to parse %s: %s", path, e)
             return {}
@@ -93,13 +93,13 @@ class TConstructHandler(ContentHandler):
                     entries[full_key] = value
 
             elif isinstance(value, dict):
-                self._extract_from_dict(value, entries, full_key)
+                self._extract_from_dict(cast(dict[str, object], value), entries, full_key)
 
             elif isinstance(value, list):
                 for i, item in enumerate(value):
                     item_key = f"{full_key}[{i}]"
                     if isinstance(item, dict):
-                        self._extract_from_dict(item, entries, item_key)
+                        self._extract_from_dict(cast(dict[str, object], item), entries, item_key)
                     elif isinstance(item, str) and self._should_translate_key(full_key):
                         entries[item_key] = item
 
@@ -119,7 +119,7 @@ class TConstructHandler(ContentHandler):
 
         try:
             raw_data = await parser.parse()
-            data = dict(raw_data)
+            data = cast(dict[str, object], dict(raw_data))
         except (ParseError, OSError) as e:
             logger.error("Failed to parse %s: %s", path, e)
             return
@@ -130,10 +130,11 @@ class TConstructHandler(ContentHandler):
         if "text" in data and isinstance(data["text"], list):
             for i, text_item in enumerate(data["text"]):
                 if isinstance(text_item, dict):
-                    for key in list(text_item.keys()):
+                    text_data = cast(dict[str, object], text_item)
+                    for key in list(text_data.keys()):
                         full_key = f"text[{i}].{key}"
                         if full_key in translations:
-                            text_item[key] = translations[full_key]
+                            text_data[key] = translations[full_key]
                             modified = True
 
         # Apply to other fields
@@ -152,7 +153,7 @@ class TConstructHandler(ContentHandler):
             return
 
         try:
-            await output_parser.dump(data)
+            await output_parser.dump(cast("Mapping[str, str]", data))
             logger.debug("Applied translations to: %s", target_path.name)
         except (DumpError, OSError) as e:
             logger.error("Failed to write %s: %s", target_path, e)
@@ -180,17 +181,18 @@ class TConstructHandler(ContentHandler):
                     modified = True
 
             elif isinstance(value, dict):
-                if self._apply_recursive(value, translations, full_key):
+                if self._apply_recursive(cast(dict[str, object], value), translations, full_key):
                     modified = True
 
             elif isinstance(value, list):
-                for i, item in enumerate(value):
+                list_value = cast(list[object], value)
+                for i, item in enumerate(list_value):
                     item_key = f"{full_key}[{i}]"
                     if isinstance(item, str) and item_key in translations:
-                        data[key][i] = translations[item_key]  # type: ignore[index]
+                        list_value[i] = translations[item_key]
                         modified = True
                     elif isinstance(item, dict):
-                        if self._apply_recursive(item, translations, item_key):
+                        if self._apply_recursive(cast(dict[str, object], item), translations, item_key):
                             modified = True
 
         return modified

@@ -114,6 +114,8 @@ class NBTParser(BaseParser):
 
         # Update with translated values
         updated_data = self._unflatten_nbt(original_data, data)
+        if not isinstance(updated_data, dict):
+            raise DumpError(self.path, "Updated NBT root is not a compound")
 
         # Serialize back to NBT
         nbt_content = self._serialize_nbt(updated_data)

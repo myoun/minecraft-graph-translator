@@ -7,6 +7,7 @@ import json
 import logging
 import re
 import time
+from collections.abc import Mapping
 from collections import deque
 from enum import Enum
 from typing import TYPE_CHECKING, Any, TypeVar
@@ -23,6 +24,17 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T", bound=BaseModel)
+
+
+def _usage_value(usage: Mapping[str, Any], *keys: str, default: int = 0) -> int:
+    """Read an integer token usage value from provider metadata."""
+    for key in keys:
+        value = usage.get(key)
+        if isinstance(value, int):
+            return value
+        if isinstance(value, float):
+            return int(value)
+    return default
 
 
 def estimate_tokens(text: str) -> int:
@@ -228,18 +240,18 @@ class TokenUsageCallback(AsyncCallbackHandler):
         if response.generations:
             for gen_list in response.generations:
                 for gen in gen_list:
-                    if hasattr(gen, "message") and hasattr(
-                        gen.message, "usage_metadata"
-                    ):
-                        usage_metadata = gen.message.usage_metadata
-                        if usage_metadata:
+                    if hasattr(gen, "message"):
+                        usage_metadata = getattr(gen.message, "usage_metadata", None)
+                        if isinstance(usage_metadata, Mapping):
                             # Google uses "input_tokens" and "output_tokens"
-                            input_tokens += usage_metadata.get(
-                                "input_tokens", 0
-                            ) or usage_metadata.get("prompt_tokens", 0)
-                            output_tokens += usage_metadata.get(
-                                "output_tokens", 0
-                            ) or usage_metadata.get("completion_tokens", 0)
+                            input_tokens += _usage_value(
+                                usage_metadata, "input_tokens", "prompt_tokens"
+                            )
+                            output_tokens += _usage_value(
+                                usage_metadata,
+                                "output_tokens",
+                                "completion_tokens",
+                            )
                             found_tokens = True
 
         if found_tokens:
@@ -248,20 +260,26 @@ class TokenUsageCallback(AsyncCallbackHandler):
         # Method 2: response.llm_output["token_usage"] (OpenAI, Anthropic)
         elif response.llm_output and "token_usage" in response.llm_output:
             usage = response.llm_output["token_usage"]
-            input_tokens = usage.get("prompt_tokens", 0) or usage.get("input_tokens", 0)
-            output_tokens = usage.get("completion_tokens", 0) or usage.get(
-                "output_tokens", 0
-            )
-            total = usage.get("total_tokens", input_tokens + output_tokens)
+            if isinstance(usage, Mapping):
+                input_tokens = _usage_value(usage, "prompt_tokens", "input_tokens")
+                output_tokens = _usage_value(
+                    usage, "completion_tokens", "output_tokens"
+                )
+                total = _usage_value(
+                    usage, "total_tokens", default=input_tokens + output_tokens
+                )
 
         # Method 3: response.llm_output["usage"] (some providers)
         elif response.llm_output and "usage" in response.llm_output:
             usage = response.llm_output["usage"]
-            input_tokens = usage.get("prompt_tokens", 0) or usage.get("input_tokens", 0)
-            output_tokens = usage.get("completion_tokens", 0) or usage.get(
-                "output_tokens", 0
-            )
-            total = usage.get("total_tokens", input_tokens + output_tokens)
+            if isinstance(usage, Mapping):
+                input_tokens = _usage_value(usage, "prompt_tokens", "input_tokens")
+                output_tokens = _usage_value(
+                    usage, "completion_tokens", "output_tokens"
+                )
+                total = _usage_value(
+                    usage, "total_tokens", default=input_tokens + output_tokens
+                )
 
         # If we got token data, update counters
         if total > 0 or input_tokens > 0 or output_tokens > 0:
@@ -502,7 +520,7 @@ class LLMClient:
         if self.config.provider == LLMProvider.OLLAMA:
             from langchain_ollama import ChatOllama
 
-            kwargs: dict[str, object] = {
+            kwargs: dict[str, Any] = {
                 "model": self.config.model,
                 "temperature": self.config.temperature,
             }
@@ -522,7 +540,7 @@ class LLMClient:
         ):
             from langchain_openai import ChatOpenAI
 
-            kwargs = {
+            kwargs: dict[str, Any] = {
                 "model": self.config.model,
                 "temperature": self.config.temperature,
             }
@@ -540,7 +558,7 @@ class LLMClient:
         elif self.config.provider == LLMProvider.ANTHROPIC:
             from langchain_anthropic import ChatAnthropic
 
-            kwargs = {
+            kwargs: dict[str, Any] = {
                 "model": self.config.model,
                 "temperature": self.config.temperature,
             }
@@ -556,7 +574,7 @@ class LLMClient:
         elif self.config.provider == LLMProvider.GOOGLE:
             from langchain_google_genai import ChatGoogleGenerativeAI
 
-            kwargs = {
+            kwargs: dict[str, Any] = {
                 "model": self.config.model,
                 "temperature": self.config.temperature,
             }

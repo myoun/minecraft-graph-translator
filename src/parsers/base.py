@@ -5,7 +5,7 @@ from __future__ import annotations
 import abc
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Callable, ClassVar, cast
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -157,8 +157,10 @@ class BaseParser(abc.ABC):
             return None
         
         # Check if parser has additional filtering (e.g., JSONParser.should_handle)
-        if hasattr(parser_cls, "should_handle"):
-            if not parser_cls.should_handle(path):
+        should_handle = getattr(parser_cls, "should_handle", None)
+        if should_handle is not None:
+            should_handle_fn = cast("Callable[[Path], bool]", should_handle)
+            if not should_handle_fn(path):
                 logger.debug("%s rejected file: %s", parser_cls.__name__, path)
                 return None
         

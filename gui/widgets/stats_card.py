@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 from qfluentwidgets import CardWidget, SubtitleLabel, BodyLabel, CaptionLabel
 
 
 class StatItem(QLabel):
     """Single statistic item display."""
     
-    def __init__(self, label: str, value: str | int, parent: object = None) -> None:
+    def __init__(
+        self, label: str, value: str | int, parent: QWidget | None = None
+    ) -> None:
         """Initialize stat item.
         
         Args:
@@ -40,7 +42,7 @@ class StatItem(QLabel):
 class StatsCard(CardWidget):
     """Card widget for displaying statistics."""
     
-    def __init__(self, title: str, parent: object = None) -> None:
+    def __init__(self, title: str, parent: QWidget | None = None) -> None:
         """Initialize stats card.
         
         Args:
@@ -99,7 +101,7 @@ class StatsCard(CardWidget):
 class ScanStatsCard(StatsCard):
     """Specialized card for scan statistics."""
 
-    def __init__(self, parent: object = None) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:
         """Initialize scan stats card.
 
         Args:
@@ -124,7 +126,7 @@ class ScanStatsCard(StatsCard):
 class TranslationStatsCard(StatsCard):
     """Specialized card for translation statistics."""
 
-    def __init__(self, parent: object = None) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:
         """Initialize translation stats card.
 
         Args:

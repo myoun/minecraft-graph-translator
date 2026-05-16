@@ -7,7 +7,12 @@ from collections import defaultdict
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import QTreeWidget, QTreeWidgetItem, QTreeWidgetItemIterator
+from PySide6.QtWidgets import (
+    QTreeWidget,
+    QTreeWidgetItem,
+    QTreeWidgetItemIterator,
+    QWidget,
+)
 
 from src.handlers.base import create_default_registry
 
@@ -25,7 +30,12 @@ class ModpackTreeItem(QTreeWidgetItem):
 
     def __init__(self, parent: QTreeWidget | QTreeWidgetItem | None = None) -> None:
         """Initialize tree item."""
-        super().__init__(parent)
+        if parent is None:
+            super().__init__()
+        elif isinstance(parent, QTreeWidget):
+            super().__init__(parent)
+        else:
+            super().__init__(parent)
         self.file_pair: LanguageFilePair | None = None
         self.is_mod_group = False
         self.mod_id: str | None = None
@@ -76,7 +86,7 @@ class ModpackTreeWidget(QTreeWidget):
     selectionChanged = Signal()  # Emitted when selection changes
     pageChanged = Signal(int, int)  # Emitted when page changes (current, total)
 
-    def __init__(self, parent: object = None) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:
         """Initialize tree widget."""
         super().__init__(parent)
         self._all_file_pairs: list[LanguageFilePair] = []  # All files (unfiltered)
@@ -444,7 +454,7 @@ class ModpackTreeWidget(QTreeWidget):
         """
         if column == 0:
             # Update selected file paths
-            tree_item = item  # type: ignore[assignment]
+            tree_item = item
             if isinstance(tree_item, ModpackTreeItem) and tree_item.file_pair:
                 file_path = str(tree_item.file_pair.source_path)
                 if tree_item.checkState(0) == Qt.CheckState.Checked:
