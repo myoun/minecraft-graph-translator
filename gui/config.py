@@ -24,7 +24,7 @@ class AppConfig(QObject):
     def __init__(self) -> None:
         """Initialize configuration manager."""
         super().__init__()
-        self.config_dir = Path(user_config_dir("auto-translate", "mcat"))
+        self.config_dir = Path(user_config_dir("minecraft-graph-translator", "mcgt"))
         self.config_file = self.config_dir / "config.json"
         self._config: dict[str, Any] = self._load_default_config()
         self.load()
@@ -54,16 +54,6 @@ class AppConfig(QObject):
                 "last_modpack": "",
                 "last_output": "",
                 "launcher_paths": [],
-            },
-            "upload": {
-                "api_url": "https://mcat.2odk.com/api",
-                "anonymous": True,
-                "last_curseforge_id": "",
-            },
-            "auth": {
-                "token": "",
-                "user_name": "",
-                "discord_id": "",
             },
         }
 

@@ -18,29 +18,9 @@ AI 기반 마인크래프트 모드팩 자동 번역 도구
 - 📦 **다양한 모드 지원**: FTB Quests, Patchouli, Origins 등
 - 📚 **용어 사전**: 바닐라 마인크래프트 용어 사전으로 일관된 번역
 - 🎨 **GUI 애플리케이션**: 직관적인 인터페이스로 쉬운 사용
-- 🌐 **웹 플랫폼**: 번역 공유 및 다운로드 커뮤니티
 - 🔄 **자동 배치 처리**: 대량의 텍스트를 효율적으로 번역
 
 ##### **[프로그램 사용 방법 ](https://github.com/kunho-park/minecraft-translator/blob/main/wiki/%EC%82%AC%EC%9A%A9%EB%B2%95.md)**
-
----
-
-## 🌐 웹사이트
-
-**[https://mcat.2odk.com](https://mcat.2odk.com)**
-
-웹사이트에서 다음 기능을 이용할 수 있습니다:
-
-- 📥 **번역 팩 다운로드**: 다른 사용자들이 만든 번역을 다운로드
-- 📤 **번역 공유**: 내가 만든 번역을 커뮤니티와 공유
-- ⭐ **리뷰 작성**: 번역 품질 평가 및 피드백
-- 🔍 **모드팩 검색**: CurseForge 태그로 필터링
-
-### AI 번역으로 커뮤니티에 참여하기
-
-1. 이 GUI 도구로 모드팩을 AI 번역
-2. [웹사이트](https://mcat.2odk.com)에 번역 업로드
-3. 다른 사용자들과 번역 공유 및 피드백 받기
 
 ---
 
@@ -102,13 +82,6 @@ LLM 서비스의 API 키가 필요합니다:
 - **번역 시작** 버튼 클릭
 - 진행 상황을 실시간으로 확인
 - 완료 후 리소스팩 및 덮어쓰기 파일 다운로드
-
-### 5. 커뮤니티에 공유 (선택사항)
-
-- 웹사이트에 업로드하여 다른 사용자들과 공유
-- 피드백을 받고 번역 품질 향상
-
----
 
 ## 📦 지원하는 모드/시스템
 
@@ -208,8 +181,6 @@ uv sync
 uv run python -m gui
 ```
 
-> 웹사이트([mcat.2odk.com](https://mcat.2odk.com))의 소스 코드는 별도의 비공개 저장소에서 관리됩니다.
-
 ### 커밋 컨벤션
 
 - `feat:` 새로운 기능
@@ -232,14 +203,11 @@ MIT License - 자유롭게 사용, 수정, 배포 가능합니다.
 
 - [LangChain](https://github.com/langchain-ai/langchain) - LLM 통합 프레임워크
 - [PySide6](https://wiki.qt.io/Qt_for_Python) - GUI 프레임워크
-- [Next.js](https://nextjs.org/) - 웹 프레임워크
-- [CurseForge API](https://docs.curseforge.com/) - 모드팩 정보
 
 ---
 
 ## 💬 커뮤니티
 
-- **웹사이트**: [https://mcat.2odk.com](https://mcat.2odk.com)
 - **GitHub**: [Issues](https://github.com/kunho-park/minecraft-translator/issues)
 - **Discord**: [https://discord.gg/UBkvjNgvYX](https://discord.gg/UBkvjNgvYX)
 
@@ -263,9 +231,3 @@ minecraft-translator/
     ├── migrate_old_data.py
     └── build_vanilla_glossary.py
 ```
-
-> 웹사이트([mcat.2odk.com](https://mcat.2odk.com))는 별도의 비공개 저장소에서 관리됩니다. 데스크톱 도구는 HTTP API를 통해 웹사이트와 통신합니다.
-
----
-
-**Made with ❤️ by 2odk**

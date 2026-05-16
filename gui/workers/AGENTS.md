@@ -7,7 +7,6 @@ Bridge between Qt's signal/slot world and `src/`'s async world. All blocking wor
 ```
 scanner_worker.py      ScannerWorker      drives ModpackScanner.scan()
 translation_worker.py  TranslationWorker  drives TranslationPipeline.run() — runs asyncio loop inside run()
-upload_worker.py       UploadWorker       posts to mcat.2odk.com via aiohttp
 update_worker.py       UpdateWorker       polls GitHub releases for newer version tag
 ```
 

@@ -212,10 +212,6 @@ class CompletionView(QWidget):
             parent=self,
         )
 
-    def _go_to_upload(self) -> None:
-        """Navigate to upload view."""
-        self.main_window.go_to_step(6)  # Upload view
-
     def _start_new_translation(self) -> None:
         """Start a new translation."""
         # Navigate back to welcome screen

@@ -7,7 +7,7 @@
 
 ## OVERVIEW
 
-`auto-translate` — Minecraft modpack translator. Async Python 3.13+ pipeline + PySide6 desktop GUI. Multi-provider LLM (OpenAI/Anthropic/Google/Ollama/Grok/DeepSeek) via LangChain. Ships as Windows `.exe` (PyInstaller). Talks to web platform at `mcat.2odk.com` over HTTP API.
+`auto-translate` — Minecraft modpack translator. Async Python 3.13+ pipeline + PySide6 desktop GUI. Multi-provider LLM (OpenAI/Anthropic/Google/Ollama/Grok/DeepSeek) via LangChain. Ships as Windows `.exe` (PyInstaller).
 
 ## STRUCTURE
 
@@ -64,7 +64,7 @@ ModpackScanner → GlossaryBuilder → handlers.extract() → BatchTranslator
 - **Version sync (3 files MUST match):** `pyproject.toml` `version`, `src/__init__.py` `__version__`, `gui/__init__.py` `__version__`. Use `tools/bump_version.py` — do NOT hand-edit.
 - **Commit prefixes:** `feat: / fix: / docs: / style: / refactor: / test: / chore:` (per README).
 - **Vanilla glossary filename:** `vanilla_glossary_{source_locale}_{target_locale}.json` in `src/glossary/vanilla_glossaries/`. Auto-loaded by locale pair.
-- **Config persistence:** `platformdirs.user_config_dir("auto-translate", "mcat")` — never write next to source.
+- **Config persistence:** `platformdirs.user_config_dir("minecraft-graph-translator", "mcgt")` — never write next to source.
 
 ## ANTI-PATTERNS (THIS PROJECT)
 
@@ -105,7 +105,6 @@ No `make test`, `make lint`, `make fmt` — none configured. CI = `.github/workf
 
 - **No tests.** None. `test/` is fixture data for manual `main.py` runs. Don't pretend otherwise.
 - **No linter/formatter.** Don't introduce ruff/black/isort without asking.
-- **Web platform is private.** `mcat.2odk.com` source lives elsewhere. Desktop app talks to it via `src/output/uploader.py` + `gui/auth.py` (OAuth-via-browser-redirect, local HTTP callback).
 - **Windows-first.** `gui_build.spec` produces `.exe`. macOS/Linux work for dev (`uv run python -m gui`) but no release artifact.
 - **Console window stays open** in built exe (`console=True` in `gui_build.spec`) — intentional for log visibility.
 - **All user-facing strings in GUI** must go through `gui/i18n/translator.t("key")`. Do not hard-code KR/EN.

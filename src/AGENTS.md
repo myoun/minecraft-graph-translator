@@ -16,7 +16,7 @@ src/
 ├── glossary/              # builder.py (LLM-driven), vanilla_builder.py, vanilla_glossaries/ (data)
 ├── validator/             # translation_validator.py: ERROR/WARNING severity per rule
 ├── reviewer/              # llm_reviewer.py: post-translation LLM review pass
-├── output/                # resource_pack.py, jar_mod.py, uploader.py (HTTP to mcat.2odk.com)
+├── output/                # resource_pack.py, jar_mod.py
 ├── models/                # Pydantic v2: translation, glossary, glossary_filter, validation
 ├── utils/                 # locale_helper.py only — KEEP it minimal
 └── assets/                # Vanilla MC 1.21.5 JSON ref data (NOT code)

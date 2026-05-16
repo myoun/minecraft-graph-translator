@@ -1,18 +1,17 @@
 # gui/views/ — Wizard Step Views
 
-8-step linear workflow inside `MainWindow`'s `QStackedWidget`. Each view is a `QWidget` subclass.
+7-step linear workflow inside `MainWindow`'s `QStackedWidget`. Each view is a `QWidget` subclass.
 
 ## STEPS (in order)
 
 ```
-0  welcome.py              WelcomeView              translate vs download choice
+0  welcome.py              WelcomeView              translation start screen
 1  modpack_select.py       ModpackSelectionView     auto-detect launchers + manual pick
 2  scan_result.py          ScanResultView           ScanStatsCard + LLM/locale settings
 3  category_select.py      CategorySelectionView    ModpackTreeWidget filter/select
 4  translation_progress.py TranslationProgressView  live progress + ETA + token counter
 5  retry.py                RetryView                failed-entry retry UI
-6  upload.py               UploadView               (auth + form + UploadWorker)
-7  completion.py           CompletionView           final stats + open-folder buttons
+6  completion.py           CompletionView           final stats + output folder
 ```
 
 (Optional `review.py` is wired into the pipeline, not as its own step — review runs during step 4 unless `skip_review=True`.)
@@ -49,7 +48,7 @@ class FooView(QWidget):
 
 Views **read** from `main_window.state` (dict) and **write** by emitting signals carrying data — `MainWindow` mutates state in slot handlers. No view writes to `state` directly.
 
-Common state keys: `modpack_path`, `scan_result`, `pipeline_config`, `selected_files`, `translation_result`, `auth_token`.
+Common state keys: `modpack_path`, `scan_result`, `pipeline_config`, `selected_files`, `translation_result`.
 
 ## WIDGETS USED
 

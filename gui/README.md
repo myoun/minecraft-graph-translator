@@ -14,18 +14,16 @@ PySide6 + qfluentwidgets를 사용한 아름다운 Fluent Design GUI입니다.
 - 🔄 **자동 런처 감지**: CurseForge, Prism Launcher, MultiMC
 - 📊 **실시간 진행률**: 번역 진행 상황 실시간 모니터링
 - 🔁 **재시도 시스템**: 실패한 번역 자동 재시도
-- 📤 **웹 업로드**: 번역 결과를 웹사이트에 바로 업로드
 
 ### 번역 워크플로우
-1. **시작 화면**: 번역 또는 다운로드 선택
+1. **시작 화면**: 번역 시작
 2. **모드팩 선택**: 자동 감지 또는 수동 선택
 3. **스캔 & 설정**: 언어 및 LLM 설정
 4. **파일 선택**: 번역할 파일/카테고리 선택
 5. **번역 진행**: 실시간 진행률 모니터링
 6. **재시도**: 실패한 번역 처리
 7. **리뷰**: LLM 기반 번역 품질 검토
-8. **업로드**: 웹사이트에 업로드 (선택)
-9. **완료**: 최종 통계 및 파일 위치
+8. **완료**: 최종 통계 및 파일 위치
 
 ## 실행 방법
 
@@ -42,8 +40,8 @@ uv run python gui/main.py
 GUI는 설정에 따라 한국어/영어를 지원합니다. 언어는 첫 실행 시 자동으로 한국어로 설정됩니다.
 
 설정 파일 위치:
-- Windows: `C:\Users\<사용자>\AppData\Local\mcat\auto-translate\config.json`
-- Linux: `~/.config/mcat/auto-translate/config.json`
+- Windows: `C:\Users\<사용자>\AppData\Local\mcgt\minecraft-graph-translator\config.json`
+- Linux: `~/.config/mcgt/minecraft-graph-translator/config.json`
 
 설정에서 `"language": "en"` 또는 `"language": "ko"`로 변경 가능합니다.
 
@@ -72,13 +70,11 @@ gui/
 │   ├── translation_progress.py # 번역 진행
 │   ├── retry.py         # 재시도
 │   ├── review.py        # 리뷰
-│   ├── upload.py        # 업로드
 │   └── completion.py    # 완료
 │
 ├── workers/             # 백그라운드 작업
 │   ├── scanner_worker.py # 스캔 워커
-│   ├── translation_worker.py # 번역 워커
-│   └── upload_worker.py # 업로드 워커
+│   └── translation_worker.py # 번역 워커
 │
 ├── widgets/             # 커스텀 위젯
 │   ├── modpack_tree.py  # 가상 스크롤링 트리

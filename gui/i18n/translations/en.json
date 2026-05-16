@@ -17,25 +17,14 @@
     "filter": "Filter",
     "all": "All"
   },
-  "auth": {
-    "login_discord": "Discord Login",
-    "logout": "Logout",
-    "default_user": "User"
-  },
   "welcome": {
     "title": "Welcome to Minecraft Modpack Translator!",
-    "description": "Translate modpacks or download already translated ones.",
+    "description": "Translate Minecraft modpacks using AI.",
     "translate": {
       "title": "Translate",
       "description": "Automatically translate modpacks using AI",
       "button": "Start Translation"
-    },
-    "download": {
-      "title": "Download",
-      "description": "Download translated modpack resource packs",
-      "button": "Open Website"
-    },
-    "discord": "Support & Bug Report (Discord)"
+    }
   },
   "modpack_select": {
     "title": "Select Modpack",
@@ -154,52 +143,6 @@
     "skip_review": "Skip",
     "reviewing": "Reviewing..."
   },
-  "upload": {
-    "title": "Upload",
-    "description": "Upload translation results to the website.",
-    "curseforge_id": "CurseForge ID:",
-    "modpack_version": "Modpack Version:",
-    "anonymous": "Anonymous Upload",
-    "api_url": "API URL:",
-    "upload_button": "Upload",
-    "skip_button": "Skip",
-    "uploading": "Uploading...",
-    "upload_success": "Upload Successful",
-    "upload_failed": "Upload Failed",
-    "section": {
-      "modpack_info": "Modpack Info",
-      "settings": "Upload Settings",
-      "account": "Account"
-    },
-    "label": {
-      "modpack_name_initial": "Modpack: -",
-      "version_initial": "Version: -",
-      "curseforge_id_initial": "CurseForge ID: -",
-      "modpack_name": "Modpack: {name}",
-      "version": "Version: {version}",
-      "curseforge_id": "CurseForge ID: {id}",
-      "version_unknown_value": "Unknown",
-      "curseforge_not_detected": "CurseForge ID: Not Detected",
-      "modpack_unknown": "Modpack: Unknown",
-      "version_unknown": "Version: Unknown",
-      "curseforge_id_unknown": "CurseForge ID: Unknown"
-    },
-    "placeholder": {
-      "auto_detected": "Auto-detected - edit if needed"
-    },
-    "account": {
-      "login_hint": "Log in to associate uploads with your account.",
-      "logged_in_as": "Logged in as {name}",
-      "default_user": "User"
-    },
-    "auto_detect_failed_title": "Auto-detection Failed",
-    "auto_detect_failed_msg": "Could not find modpack info. Please enter it manually.",
-    "version_required": "Please enter the modpack version.",
-    "uploading_status": "Uploading...",
-    "preparing_status": "Preparing upload...",
-    "invalid_curseforge_id": "Please enter a valid CurseForge ID.",
-    "upload_failed_msg": "Upload failed: {error}"
-  },
   "completion": {
     "title": "Complete!",
     "description": "Translation completed successfully.",
@@ -215,7 +158,6 @@
       "open_folder": "Open Folder"
     },
     "review_button": "Review",
-    "upload_button": "Upload",
     "new_translation": "Start New Translation",
     "stats_title": "Translation Statistics",
     "token_usage_initial": "🪙 Token Usage: -",
@@ -271,8 +213,5 @@
   "scanner": {
     "starting": "Starting modpack scan...",
     "complete": "Scan complete!"
-  },
-  "welcome_links": {
-    "usage_guide": "User Guide"
   }
 }

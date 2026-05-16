@@ -9,9 +9,8 @@ gui/
 ├── __main__.py          # `python -m gui` entry
 ├── main.py              # logging + theme setup, QApplication boot
 ├── app.py               # MainWindow: QStackedWidget nav + central state dict + signal routing
-├── config.py            # AppConfig: persistent JSON via platformdirs (mcat/auto-translate/config.json)
-├── auth.py              # DesktopAuth: OAuth-via-browser + local HTTP callback on free port
-├── views/               # 8 wizard steps — see views/AGENTS.md
+├── config.py            # AppConfig: persistent JSON via platformdirs
+├── views/               # wizard steps — see views/AGENTS.md
 ├── widgets/             # ModpackTreeWidget (paginated), ProgressCard, ScanStatsCard, dialogs
 ├── workers/             # QThread + asyncio integration — see workers/AGENTS.md
 ├── i18n/                # Custom JSON translator (NOT QTranslator/gettext)
@@ -21,7 +20,7 @@ gui/
 
 ## NAVIGATION MODEL
 
-- `MainWindow` owns `QStackedWidget` with all 8 views indexed 0–7.
+- `MainWindow` owns `QStackedWidget` with all wizard views.
 - `MainWindow.state: dict` is the **single source of truth** between views (modpack path, scan result, settings, translation result).
 - Views emit Qt signals (`modpackSelected`, `settingsConfirmed`, `cancelled`, ...) → `MainWindow._on_*` slots mutate state and call `self._go_to_step(n)`.
 - **No router library, no Redux-style store.** Plain dict + signals.
@@ -43,20 +42,10 @@ gui/
 
 `AppConfig` (in `config.py`) — dot-notation accessor (`cfg.get("llm.model")`, `cfg.set("llm.temperature", 0.3)`). Persists to:
 
-- Linux/macOS: `~/.config/mcat/auto-translate/config.json`
-- Windows: `%LOCALAPPDATA%\mcat\auto-translate\config.json`
+- Linux/macOS: `~/.config/mcgt/minecraft-graph-translator/config.json`
+- Windows: `%LOCALAPPDATA%\mcgt\minecraft-graph-translator\config.json`
 
 Defaults are merged on load — adding a new key with a default in `AppConfig._DEFAULTS` is safe for existing users.
-
-## AUTH
-
-`DesktopAuth.login()`:
-1. Find a free port (random) → start local `aiohttp` HTTP server.
-2. `webbrowser.open(...)` to `mcat.2odk.com/oauth?redirect=http://localhost:{port}/callback`.
-3. Browser hits the local callback with `?token=...`.
-4. Server captures token, shuts down, emits `loginComplete(token)`.
-
-Token persisted in `config.json` under `auth.token`. **Never log the token.**
 
 ## ANTI-PATTERNS
 

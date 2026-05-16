@@ -1,16 +1,14 @@
-"""Welcome screen with translation/download choice."""
+"""Welcome screen for starting a translation."""
 
 from __future__ import annotations
 
-import webbrowser
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QEasingCurve, QPropertyAnimation, Qt
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
 from qfluentwidgets import (
     BodyLabel,
     CardWidget,
-    HyperlinkButton,
     PrimaryPushButton,
     SubtitleLabel,
 )
@@ -111,7 +109,7 @@ class WelcomeCard(CardWidget):
 
 
 class WelcomeView(QWidget):
-    """Welcome screen with translation/download choice."""
+    """Welcome screen for starting a translation."""
 
     def __init__(self, main_window: MainWindow) -> None:
         """Initialize welcome view.
@@ -146,11 +144,6 @@ class WelcomeView(QWidget):
 
         layout.addStretch()
 
-        # Cards container
-        cards_layout = QHBoxLayout()
-        cards_layout.setSpacing(40)
-        cards_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
         # Translate card
         self.translate_card = WelcomeCard(
             FIF.LANGUAGE,
@@ -158,56 +151,13 @@ class WelcomeView(QWidget):
             t.t("welcome.translate.description"),
             t.t("welcome.translate.button"),
         )
-
-        # Download card
-        self.download_card = WelcomeCard(
-            FIF.DOWNLOAD,
-            t.t("welcome.download.title"),
-            t.t("welcome.download.description"),
-            t.t("welcome.download.button"),
-        )
-
-        cards_layout.addWidget(self.translate_card)
-        cards_layout.addWidget(self.download_card)
-
-        layout.addLayout(cards_layout)
+        layout.addWidget(self.translate_card, alignment=Qt.AlignmentFlag.AlignCenter)
         layout.addStretch()
-
-        # Links layout
-        links_layout = QHBoxLayout()
-        links_layout.setSpacing(20)
-        links_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-
-        from ..i18n import get_translator
-
-        self.guide_link = HyperlinkButton(
-            "https://github.com/kunho-park/minecraft-translator/blob/main/wiki/%EC%82%AC%EC%9A%A9%EB%B2%95.md",
-            get_translator().t("welcome_links.usage_guide"),
-            self,
-        )
-        links_layout.addWidget(self.guide_link)
-
-        # Discord link
-        self.discord_link = HyperlinkButton(
-            "https://discord.gg/UBkvjNgvYX",
-            t.t("welcome.discord"),
-            self,
-        )
-        links_layout.addWidget(self.discord_link)
-
-        layout.addLayout(links_layout)
 
     def _connect_signals(self) -> None:
         """Connect signals to slots."""
         self.translate_card.button.clicked.connect(self._on_translate_clicked)
-        self.download_card.button.clicked.connect(self._on_download_clicked)
 
     def _on_translate_clicked(self) -> None:
         """Handle translate button click."""
-        # Navigate to modpack selection view
-        # This will be implemented when ModpackSelectionView is ready
-        pass
-
-    def _on_download_clicked(self) -> None:
-        """Handle download button click."""
-        webbrowser.open("https://mcat.2odk.com/modpacks")
+        self.main_window.go_to_step(1)

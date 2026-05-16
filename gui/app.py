@@ -11,7 +11,6 @@ from dotenv import load_dotenv
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
-    QHBoxLayout,
     QMainWindow,
     QStackedWidget,
     QVBoxLayout,
@@ -49,30 +48,8 @@ class MainWindow(QMainWindow):
             "pipeline_result": None,
         }
 
-        self._init_auth()
         self._init_window()
         self._load_views()
-
-    def _init_auth(self) -> None:
-        """Initialize the desktop auth manager."""
-        from .auth import DesktopAuth
-
-        self.desktop_auth = DesktopAuth(self.config)
-        self.desktop_auth.loginComplete.connect(self._on_login_complete)
-        self.desktop_auth.loginFailed.connect(self._on_login_failed)
-
-    def _on_login_complete(
-        self, token: str, user_name: str, discord_id: str
-    ) -> None:
-        """Handle successful login."""
-        logger.info("Login complete: %s", user_name)
-        self._refresh_account_widget()
-        if hasattr(self, "upload_view"):
-            self.upload_view._refresh_account_ui()
-
-    def _on_login_failed(self, error: str) -> None:
-        """Handle login failure."""
-        logger.error("Login failed: %s", error)
 
     def _init_window(self) -> None:
         """Initialize window properties."""
@@ -134,55 +111,6 @@ class MainWindow(QMainWindow):
             "en": english_action,
         }
 
-        # Account button in menu bar (right side)
-        self._create_account_widget()
-
-    def _create_account_widget(self) -> None:
-        """Create account bar widget (added to container layout in _load_views)."""
-        from qfluentwidgets import BodyLabel, PushButton
-
-        self._account_bar = QWidget()
-        self._account_bar.setFixedHeight(40)
-        bar_layout = QHBoxLayout(self._account_bar)
-        bar_layout.setContentsMargins(16, 4, 16, 4)
-        bar_layout.setSpacing(8)
-
-        bar_layout.addStretch()
-
-        self._account_label = BodyLabel("")
-        self._account_label.setStyleSheet("color: #4ade80; font-size: 13px;")
-        self._account_label.setVisible(False)
-        bar_layout.addWidget(self._account_label)
-
-        self._login_action_btn = PushButton(self.translator.t("auth.login_discord"))
-        self._login_action_btn.setFixedHeight(28)
-        self._login_action_btn.clicked.connect(self.desktop_auth.start_login)
-        bar_layout.addWidget(self._login_action_btn)
-
-        self._logout_action_btn = PushButton(self.translator.t("auth.logout"))
-        self._logout_action_btn.setFixedHeight(28)
-        self._logout_action_btn.setVisible(False)
-        self._logout_action_btn.clicked.connect(self._on_logout_clicked)
-        bar_layout.addWidget(self._logout_action_btn)
-
-        self._refresh_account_widget()
-
-    def _refresh_account_widget(self) -> None:
-        """Update the menu bar account widget to reflect login state."""
-        token = self.config.get("auth.token")
-        if token:
-            name = self.config.get(
-                "auth.user_name", self.translator.t("auth.default_user")
-            )
-            self._account_label.setText(name)
-            self._account_label.setVisible(True)
-            self._login_action_btn.setVisible(False)
-            self._logout_action_btn.setVisible(True)
-        else:
-            self._account_label.setVisible(False)
-            self._login_action_btn.setVisible(True)
-            self._logout_action_btn.setVisible(False)
-
     def _change_language(self, language: str) -> None:
         """Change application language.
 
@@ -228,7 +156,6 @@ class MainWindow(QMainWindow):
         from .views.retry import RetryView
         from .views.scan_result import ScanResultView
         from .views.translation_progress import TranslationProgressView
-        from .views.upload import UploadView
         from .views.welcome import WelcomeView
 
         self.welcome_view = WelcomeView(self)
@@ -237,7 +164,6 @@ class MainWindow(QMainWindow):
         self.category_select_view = CategorySelectionView(self)
         self.progress_view = TranslationProgressView(self)
         self.retry_view = RetryView(self)
-        self.upload_view = UploadView(self)
         self.completion_view = CompletionView(self)
 
         self.view_stack.addWidget(self.welcome_view)  # 0
@@ -246,8 +172,7 @@ class MainWindow(QMainWindow):
         self.view_stack.addWidget(self.category_select_view)  # 3
         self.view_stack.addWidget(self.progress_view)  # 4
         self.view_stack.addWidget(self.retry_view)  # 5
-        self.view_stack.addWidget(self.upload_view)  # 6
-        self.view_stack.addWidget(self.completion_view)  # 7
+        self.view_stack.addWidget(self.completion_view)  # 6
 
         # Reconnect signals
         self._connect_view_signals()
@@ -269,7 +194,6 @@ class MainWindow(QMainWindow):
         from .views.retry import RetryView
         from .views.scan_result import ScanResultView
         from .views.translation_progress import TranslationProgressView
-        from .views.upload import UploadView
         from .views.welcome import WelcomeView
 
         # Create all views
@@ -279,7 +203,6 @@ class MainWindow(QMainWindow):
         self.category_select_view = CategorySelectionView(self)
         self.progress_view = TranslationProgressView(self)
         self.retry_view = RetryView(self)
-        self.upload_view = UploadView(self)
         self.completion_view = CompletionView(self)
 
         # Create central widget with stacked layout
@@ -288,8 +211,6 @@ class MainWindow(QMainWindow):
         container_layout.setContentsMargins(0, 0, 0, 0)
         container_layout.setSpacing(0)
 
-        container_layout.addWidget(self._account_bar)
-
         self.view_stack = QStackedWidget()
         self.view_stack.addWidget(self.welcome_view)  # 0
         self.view_stack.addWidget(self.modpack_select_view)  # 1
@@ -297,8 +218,7 @@ class MainWindow(QMainWindow):
         self.view_stack.addWidget(self.category_select_view)  # 3
         self.view_stack.addWidget(self.progress_view)  # 4
         self.view_stack.addWidget(self.retry_view)  # 5
-        self.view_stack.addWidget(self.upload_view)  # 6
-        self.view_stack.addWidget(self.completion_view)  # 7
+        self.view_stack.addWidget(self.completion_view)  # 6
 
         container_layout.addWidget(self.view_stack)
 
@@ -310,11 +230,6 @@ class MainWindow(QMainWindow):
 
     def _connect_view_signals(self) -> None:
         """Connect signals between views."""
-        # Welcome -> Modpack Select
-        self.welcome_view.translate_card.button.clicked.connect(
-            lambda: self.go_to_step(1)
-        )
-
         # Modpack Select -> Scan (with worker)
         self.modpack_select_view.modpackSelected.connect(self._on_modpack_selected)
 
@@ -327,16 +242,6 @@ class MainWindow(QMainWindow):
         # Retry signals
         self.retry_view.retryRequested.connect(self._on_retry_requested)
         self.retry_view.skipRequested.connect(self._on_retry_skip)
-
-        # Upload signals
-        self.upload_view.uploadRequested.connect(self._on_upload_requested)
-        self.upload_view.skipRequested.connect(
-            lambda: self.go_to_step(7)
-        )  # Skip to completion
-        self.upload_view.login_button.clicked.connect(
-            self.desktop_auth.start_login
-        )
-        self.upload_view.logout_button.clicked.connect(self._on_logout_clicked)
 
     def _on_modpack_selected(self, modpack_path: Path) -> None:
         """Handle modpack selection - start scanning.
@@ -549,13 +454,12 @@ class MainWindow(QMainWindow):
             if output_path:
                 self.completion_view.set_result(pipeline_result, output_path)
 
-            # Move to upload view
             logger.info(
-                "Translation complete: %d/%d successful - moving to upload view",
+                "Translation complete: %d/%d successful - moving to completion view",
                 pipeline_result.translated_entries,
                 pipeline_result.total_entries,
             )
-            self.go_to_step(6)  # Upload View
+            self.go_to_step(6)
 
     def _merge_pipeline_results(self, existing: object, retry: object) -> None:
         """Merge retry results into existing pipeline result.
@@ -604,7 +508,7 @@ class MainWindow(QMainWindow):
             # Set result on completion view so it's ready when we get there
             self.completion_view.set_result(pipeline_result, output_path)
 
-        self.go_to_step(6)  # Upload view
+        self.go_to_step(6)
 
     def _on_translation_cancelled(self) -> None:
         """Handle translation cancellation."""
@@ -658,88 +562,6 @@ class MainWindow(QMainWindow):
         self.translation_worker.start()
 
         logger.info("Retrying %d failed files", len(failed_files))
-
-    def _on_upload_requested(
-        self,
-        curseforge_id: int,
-        version: str,
-        anonymous: bool,
-        api_url: str,
-    ) -> None:
-        """Handle upload request.
-
-        Args:
-            curseforge_id: CurseForge modpack ID
-            version: Modpack version
-            anonymous: Whether to upload anonymously
-            api_url: API base URL
-        """
-        from .workers.upload_worker import UploadWorker
-
-        result = self.state.get("pipeline_result")
-        if not result or not result.generation_result:
-            logger.error("No translation result to upload")
-            return
-
-        gen_result = result.generation_result
-
-        # Prepare translation stats from pipeline result
-        translation_stats = {
-            "file_count": result.file_count,
-            "total_entries": result.total_entries,
-            "translated_entries": result.translated_entries,
-            "input_tokens": result.total_input_tokens,
-            "output_tokens": result.total_output_tokens,
-            "total_tokens": result.total_tokens,
-            "handler_stats": result.handler_stats,
-            "duration_seconds": result.duration_seconds,
-        }
-
-        auth_token = self.config.get("auth.token") or None
-
-        self.upload_worker = UploadWorker(
-            curseforge_id=curseforge_id,
-            modpack_version=version,
-            resource_pack_path=gen_result.resource_pack_path,
-            override_path=gen_result.override_zip_path,
-            config=dict(self.state["pipeline_config"]),
-            api_url=api_url,
-            anonymous=anonymous,
-            translation_stats=translation_stats,
-            auth_token=auth_token,
-        )
-        self.upload_worker.uploadProgress.connect(self.upload_view.update_status)
-        self.upload_worker.uploadComplete.connect(self._on_upload_complete)
-        self.upload_worker.uploadError.connect(self._on_upload_error)
-        self.upload_worker.start()
-
-        logger.info("Started upload to %s", api_url)
-
-    def _on_upload_complete(self, result: dict[str, object]) -> None:
-        """Handle upload completion.
-
-        Args:
-            result: Upload result
-        """
-        logger.info("Upload complete: %s", result)
-        # Show completion view (step 7)
-        self.go_to_step(7)
-
-    def _on_upload_error(self, error: str) -> None:
-        """Handle upload error.
-
-        Args:
-            error: Error message
-        """
-        logger.error("Upload error: %s", error)
-        self.upload_view.reset_after_error(error)
-
-    def _on_logout_clicked(self) -> None:
-        """Handle logout button click."""
-        self.desktop_auth.logout()
-        self._refresh_account_widget()
-        if hasattr(self, "upload_view"):
-            self.upload_view._refresh_account_ui()
 
     def go_to_step(self, step: int) -> None:
         """Navigate to a specific step.
