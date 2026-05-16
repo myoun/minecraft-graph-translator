@@ -780,6 +780,7 @@ class ModpackScanner:
         for base_path, source_tf in source_files.items():
             source_path = Path(source_tf.input_path)
             namespace, mod_id = self._extract_namespace(source_path, source_tf)
+            source_type = self._extract_source_type(source_path, source_tf)
 
             target_path: Path | None = None
             if base_path in target_files:
@@ -792,6 +793,7 @@ class ModpackScanner:
                 target_path=target_path,
                 namespace=namespace,
                 mod_id=mod_id,
+                source_type=source_type,
             )
 
             if target_path:
@@ -845,6 +847,13 @@ class ModpackScanner:
             return mod_name, mod_name
 
         return tf.file_type, tf.file_type
+
+    def _extract_source_type(self, file_path: Path, tf: TranslationFile) -> str:
+        """Extract a stable source type for a translation file."""
+        handler = self.handler_registry.get_handler(file_path)
+        if handler is not None and handler.name:
+            return handler.name
+        return tf.file_type
 
     def _clean_mod_name(self, jar_name: str) -> str:
         """Extract clean mod name from jar filename."""

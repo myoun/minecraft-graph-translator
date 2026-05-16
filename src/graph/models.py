@@ -62,6 +62,7 @@ class ModInfo(BaseModel):
     mod_id: str = Field(..., description="Loader mod id")
     name: str = Field(default="", description="Human-readable mod name")
     version: str = Field(default="", description="Declared mod version")
+    namespace: str = Field(default="", description="Primary resource namespace")
     loader: ModLoader = Field(default=ModLoader.UNKNOWN, description="Mod loader")
     source_path: Path = Field(..., description="Jar or metadata file path")
     metadata_path: str = Field(
@@ -76,6 +77,24 @@ class GraphContext(BaseModel):
     """Dependency graph metadata available to the translation pipeline."""
 
     mods: dict[str, ModInfo] = Field(default_factory=dict)
+
+    @property
+    def namespace_to_mod_id(self) -> dict[str, str]:
+        """Build a lookup from resource namespace to mod id."""
+        lookup: dict[str, str] = {}
+        for mod_id, mod in self.mods.items():
+            if mod.namespace:
+                lookup[mod.namespace] = mod_id
+            lookup.setdefault(mod_id, mod_id)
+        return lookup
+
+    @property
+    def jar_to_mod_ids(self) -> dict[str, list[str]]:
+        """Build a lookup from jar filename to declared mod ids."""
+        lookup: dict[str, list[str]] = {}
+        for mod_id, mod in self.mods.items():
+            lookup.setdefault(mod.source_path.name, []).append(mod_id)
+        return lookup
 
     @property
     def dependencies(self) -> list[ModDependency]:
@@ -112,3 +131,11 @@ class GraphContext(BaseModel):
                 if dependency.kind != DependencyKind.INCOMPATIBLE
             ]
         return dependencies
+
+    def get_mod_id_for_namespace(self, namespace: str) -> str | None:
+        """Return the mod id associated with a namespace, if known."""
+        return self.namespace_to_mod_id.get(namespace)
+
+    def get_mod_ids_for_jar(self, jar_name: str) -> list[str]:
+        """Return mod ids declared by a jar filename."""
+        return self.jar_to_mod_ids.get(jar_name, [])

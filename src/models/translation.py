@@ -44,6 +44,10 @@ class LanguageFilePair(BaseModel):
         default="",
         description="Mod identifier",
     )
+    source_type: str = Field(
+        default="",
+        description="Source content type, e.g. language, ftbquests, patchouli",
+    )
 
     @property
     def has_existing_translation(self) -> bool:

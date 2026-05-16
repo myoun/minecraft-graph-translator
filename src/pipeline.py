@@ -365,6 +365,7 @@ class TranslationPipeline:
             # Step 1.5: Scan mod metadata and dependency graph
             logger.info("Step 1.5: Scanning mod dependency metadata...")
             result.graph_context = await self.graph_builder.scan_modpack(modpack_path)
+            self._apply_source_attribution(result)
 
             if not file_pairs:
                 logger.warning("No language files found!")
@@ -609,6 +610,58 @@ class TranslationPipeline:
             )
 
         return result
+
+    def _apply_source_attribution(self, result: PipelineResult) -> None:
+        """Refine scanned file attribution using dependency graph metadata."""
+        if result.scan_result is None or result.graph_context is None:
+            return
+
+        updated = 0
+        for pair in result.scan_result.all_translation_pairs:
+            resolved_mod_id = self._resolve_pair_mod_id(pair, result.graph_context)
+            if resolved_mod_id and resolved_mod_id != pair.mod_id:
+                logger.debug(
+                    "Refined source attribution for %s: %s -> %s",
+                    pair.source_path,
+                    pair.mod_id,
+                    resolved_mod_id,
+                )
+                pair.mod_id = resolved_mod_id
+                updated += 1
+
+        if updated:
+            logger.info("Refined source attribution for %d translation files", updated)
+
+    def _resolve_pair_mod_id(
+        self,
+        pair: LanguageFilePair,
+        graph_context: GraphContext,
+    ) -> str:
+        """Resolve the owning mod id for a scanned translation file."""
+        jar_name = self._extract_source_jar_name(pair.source_path)
+        if jar_name:
+            jar_mod_ids = graph_context.get_mod_ids_for_jar(jar_name)
+            if len(jar_mod_ids) == 1:
+                return jar_mod_ids[0]
+            if pair.namespace in jar_mod_ids:
+                return pair.namespace
+
+        if pair.namespace:
+            namespace_mod_id = graph_context.get_mod_id_for_namespace(pair.namespace)
+            if namespace_mod_id:
+                return namespace_mod_id
+
+        return pair.mod_id
+
+    @staticmethod
+    def _extract_source_jar_name(source_path: Path) -> str | None:
+        """Extract jar filename from cached jar extraction paths."""
+        parts = source_path.parts
+        for index, part in enumerate(parts):
+            if part == "extracted" and index > 0 and parts[index - 1] == ".mct_cache":
+                if index + 1 < len(parts):
+                    return parts[index + 1]
+        return None
 
     async def _create_tasks(
         self,

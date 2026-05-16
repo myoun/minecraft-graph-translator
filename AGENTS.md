@@ -7,7 +7,7 @@
 
 ## OVERVIEW
 
-`auto-translate` — Minecraft modpack translator. Async Python 3.13+ pipeline + PySide6 desktop GUI. Multi-provider LLM (OpenAI/Anthropic/Google/Ollama/Grok/DeepSeek) via LangChain. Ships as Windows `.exe` (PyInstaller).
+`auto-translate` = Minecraft modpack translator. Async Python 3.13+ pipeline + PySide6 GUI. Multi-provider LLM (OpenAI/Anthropic/Google/Ollama/Grok/DeepSeek) via LangChain. Ships Windows `.exe` (PyInstaller).
 
 ## STRUCTURE
 
@@ -32,9 +32,9 @@
 
 | Task | Location |
 |------|----------|
-| Add a new mod handler | `src/handlers/AGENTS.md` |
-| Add a new file format parser | `src/parsers/AGENTS.md` |
-| Modify translation prompts / language rules | `src/prompts.py` |
+| Add new mod handler | `src/handlers/AGENTS.md` |
+| Add new file format parser | `src/parsers/AGENTS.md` |
+| Change prompts / language rules | `src/prompts.py` |
 | Tune batching / concurrency | `src/pipeline.py` (`PipelineConfig`), `src/translator/batch_translator.py` |
 | Add LLM provider | `src/llm/client.py` (`LLMProvider` enum + `_create_chat_model`) |
 | Fix placeholder corruption (`§`, `%s`, `{x}`, `<tag>`) | `src/translator/placeholder.py` |
@@ -55,38 +55,38 @@ ModpackScanner → GlossaryBuilder → handlers.extract() → BatchTranslator
 
 ## CONVENTIONS
 
-- **Python 3.13+ only.** `from __future__ import annotations` everywhere. Full type hints. Google-style docstrings.
+- **Python 3.13+ only.** `from __future__ import annotations` everywhere. Full types. Google docstrings.
 - **Package manager: `uv`.** Never `pip install` / `python -m venv`. Use `uv sync`, `uv run python ...`, `uv add`.
 - **Async-first.** All I/O (file, LLM, HTTP) is `async`. Handlers/parsers expose `async def extract/apply/parse/dump`.
-- **Pydantic v2** for all data shapes (translation, glossary, validation, config). No raw dicts crossing module boundaries.
-- **Logging: `colorlog`** with module-level `logger = logging.getLogger(__name__)`. No `print()` in `src/` (CLI-only `print` lives in `main.py`).
-- **Locale code format: `xx_yy` lowercase** (`en_us`, `ko_kr`, `ja_jp`, `zh_cn`, `zh_tw`). Used in file paths, glossary filenames, config.
+- **Pydantic v2** for data shapes (translation, glossary, validation, config). No raw dicts across module boundaries.
+- **Logging: `colorlog`** with module `logger = logging.getLogger(__name__)`. No `print()` in `src/` (CLI-only `print` in `main.py`).
+- **Locale code format: `xx_yy` lowercase** (`en_us`, `ko_kr`, `ja_jp`, `zh_cn`, `zh_tw`). Used in paths, glossary filenames, config.
 - **Version sync (3 files MUST match):** `pyproject.toml` `version`, `src/__init__.py` `__version__`, `gui/__init__.py` `__version__`. Use `tools/bump_version.py` — do NOT hand-edit.
 - **Commit prefixes:** `feat: / fix: / docs: / style: / refactor: / test: / chore:` (per README).
-- **Vanilla glossary filename:** `vanilla_glossary_{source_locale}_{target_locale}.json` in `src/glossary/vanilla_glossaries/`. Auto-loaded by locale pair.
-- **Config persistence:** `platformdirs.user_config_dir("minecraft-graph-translator", "mcgt")` — never write next to source.
+- **Vanilla glossary filename:** `vanilla_glossary_{source_locale}_{target_locale}.json` in `src/glossary/vanilla_glossaries/`. Auto-load by locale pair.
+- **Config persistence:** `platformdirs.user_config_dir("minecraft-graph-translator", "mcgt")` — never write near source.
 
 ## ANTI-PATTERNS (THIS PROJECT)
 
-- **NEVER** modify `⟦PH1⟧`-style placeholders. They wrap `§`-color codes, `%s`/`%1$s` format specifiers, `{name}`, `<tag>`, `\n` during LLM calls. Mismatch → `PlaceholderError` → entry rejected.
-- **NEVER** translate Korean output with English in parens (`경험치 (Experience)`) or square brackets (`[철] [검]`). Hard-coded violations in `src/prompts.py:178-180`.
-- **NEVER** deviate from glossary terms. If glossary maps `Enchanting Table → 마법 부여대`, every occurrence MUST use it. Glossary overrides LLM judgment.
-- **NEVER** add a test framework, linter, or formatter without asking. None exist intentionally — `pyproject.toml` has only runtime + `pyinstaller`+`ty`. `pytest` is in PyInstaller `excludes`.
+- **NEVER** modify `⟦PH1⟧`-style placeholders. They wrap `§` color codes, `%s`/`%1$s` formats, `{name}`, `<tag>`, `\n` during LLM calls. Mismatch → `PlaceholderError` → reject entry.
+- **NEVER** translate Korean output with English parens (`경험치 (Experience)`) or square brackets (`[철] [검]`). Hard violations in `src/prompts.py:178-180`.
+- **NEVER** deviate from glossary. If glossary maps `Enchanting Table → 마법 부여대`, every occurrence MUST use it. Glossary overrides LLM.
+- **NEVER** add test framework, linter, formatter without asking. None intentional — `pyproject.toml` has runtime + `pyinstaller`+`ty`. `pytest` in PyInstaller `excludes`.
 - **NEVER** use `pip` or hand-edit `uv.lock`. Use `uv add <pkg>`.
 - **NEVER** hand-edit `src/glossary/vanilla_glossaries/*.json` (57k+ lines, generated). Regenerate with `tools/build_vanilla_glossary.py`.
-- **NEVER** suppress `PlaceholderError` to "make it pass" — corrupted placeholders break the game silently.
+- **NEVER** suppress `PlaceholderError` to "make it pass" — corrupt placeholders silently break game.
 - **NEVER** commit `DEPLOYMENT.md`, `RELEASE_GUIDE.md`, `tools/MIGRATION_GUIDE.md` (in `.gitignore` — internal docs).
-- **NEVER** `pip install pytest` to "run tests" — `test/modpack/` is a **manual fixture**, not a unit-test suite. Run `uv run python main.py` against it.
-- **No docstring or comment may include emojis in code files.** README/docs only.
+- **NEVER** `pip install pytest` to "run tests" — `test/modpack/` is **manual fixture**, not unit-test suite. Run `uv run python main.py` against it.
+- **No docstring/comment emojis in code files.** README/docs only.
 
 ## UNIQUE STYLES
 
 - **Two registry systems** with different conventions (do not unify):
   - `src/handlers/` — manual `registry.register()` ordered by `priority` ClassVar (higher first).
   - `src/parsers/` — auto-registers via `__init_subclass__`, looked up by file extension.
-- **Pipeline result is mutable across stages.** `regenerate_outputs(result, ...)` and `retry_failed(result)` mutate the same `PipelineResult`. Don't copy/freeze it mid-pipeline.
-- **Separate `__version__` in `src/` and `gui/`** despite single project — both must change together via `tools/bump_version.py`.
-- **GUI navigation = `QStackedWidget` + central state dict on `MainWindow`**, not a router/state-management lib. Views emit signals, `MainWindow._on_*` slots route.
+- **Pipeline result mutable across stages.** `regenerate_outputs(result, ...)` and `retry_failed(result)` mutate same `PipelineResult`. Don't copy/freeze mid-pipeline.
+- **Separate `__version__` in `src/` and `gui/`** despite one project — both change together via `tools/bump_version.py`.
+- **GUI navigation = `QStackedWidget` + central state dict on `MainWindow`**, not router/state lib. Views emit signals, `MainWindow._on_*` slots route.
 
 ## COMMANDS
 
@@ -103,8 +103,8 @@ No `make test`, `make lint`, `make fmt` — none configured. CI = `.github/workf
 
 ## NOTES
 
-- **No tests.** None. `test/` is fixture data for manual `main.py` runs. Don't pretend otherwise.
-- **No linter/formatter.** Don't introduce ruff/black/isort without asking.
-- **Windows-first.** `gui_build.spec` produces `.exe`. macOS/Linux work for dev (`uv run python -m gui`) but no release artifact.
-- **Console window stays open** in built exe (`console=True` in `gui_build.spec`) — intentional for log visibility.
-- **All user-facing strings in GUI** must go through `gui/i18n/translator.t("key")`. Do not hard-code KR/EN.
+- **No tests.** None. `test/` is fixture for manual `main.py` runs. Don't pretend.
+- **No linter/formatter.** Don't add ruff/black/isort without asking.
+- **Windows-first.** `gui_build.spec` produces `.exe`. macOS/Linux dev works (`uv run python -m gui`) but no release artifact.
+- **Console window stays open** in built exe (`console=True` in `gui_build.spec`) — intentional for logs.
+- **All user-facing strings in GUI** must use `gui/i18n/translator.t("key")`. Do not hard-code KR/EN.
