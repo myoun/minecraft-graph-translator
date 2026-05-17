@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
 from src.handlers.base import create_default_registry
 
 if TYPE_CHECKING:
+    from src.graph import GraphContext
     from src.models import LanguageFilePair
 
 logger = logging.getLogger(__name__)
@@ -39,6 +40,7 @@ class ModpackTreeItem(QTreeWidgetItem):
         self.file_pair: LanguageFilePair | None = None
         self.is_mod_group = False
         self.mod_id: str | None = None
+        self.bundle_id: str | None = None
         # Don't set default check state here - will be set when loading
 
     def set_as_mod_group(self, mod_id: str, file_count: int) -> None:
@@ -116,7 +118,11 @@ class ModpackTreeWidget(QTreeWidget):
         # Connect signals
         self.itemChanged.connect(self._on_item_changed)
 
-    def load_files(self, file_pairs: list[LanguageFilePair]) -> None:
+    def load_files(
+        self,
+        file_pairs: list[LanguageFilePair],
+        graph_context: GraphContext | object | None = None,
+    ) -> None:
         """Load file pairs into tree with pagination.
 
         Args:
@@ -125,6 +131,7 @@ class ModpackTreeWidget(QTreeWidget):
         self._all_file_pairs = file_pairs
         self._file_pairs = file_pairs
         self._current_filter = None
+        self._graph_context = graph_context
         self._all_mod_groups = self._group_by_mod(file_pairs)
 
         # Initialize all files as selected by default
@@ -172,44 +179,29 @@ class ModpackTreeWidget(QTreeWidget):
         end_idx = min(start_idx + self._items_per_page, len(self._file_pairs))
         page_files = self._file_pairs[start_idx:end_idx]
 
-        # Group page files by mod
-        page_mod_groups = self._group_by_mod(page_files)
+        # Group page files by bundle/mod
+        page_mod_groups = self._group_by_bundle(page_files)
 
         # Build tree for this page
-        for mod_id in sorted(page_mod_groups.keys()):
-            files = page_mod_groups[mod_id]
+        for group_id in sorted(page_mod_groups.keys()):
+            grouped_value = page_mod_groups[group_id]
+            if isinstance(grouped_value, dict):
+                bundle_item = ModpackTreeItem(self)
+                bundle_file_count = sum(len(files) for files in grouped_value.values())
+                bundle_item.setText(0, f"{group_id} ({bundle_file_count})")
+                bundle_item.is_mod_group = True
+                bundle_item.bundle_id = group_id
+                bundle_item.setFlags(
+                    bundle_item.flags() | Qt.ItemFlag.ItemIsAutoTristate
+                )
 
-            # Create mod group item
-            mod_item = ModpackTreeItem(self)
-            total_mod_files = len(self._all_mod_groups[mod_id])
-            page_mod_files = len(files)
+                for mod_id in sorted(grouped_value.keys()):
+                    self._add_mod_group(bundle_item, mod_id, grouped_value[mod_id])
+                continue
 
-            # Show page info if mod has files on multiple pages
-            if total_mod_files > page_mod_files:
-                mod_item.setText(0, f"{mod_id} ({page_mod_files}/{total_mod_files})")
-            else:
-                mod_item.set_as_mod_group(mod_id, len(files))
-
-            mod_item.is_mod_group = True
-            mod_item.mod_id = mod_id
-            mod_item.setFlags(mod_item.flags() | Qt.ItemFlag.ItemIsAutoTristate)
-            # Mod group state will be auto-calculated from children (tristate)
-
-            # Add file items
-            for file_pair in sorted(files, key=lambda f: f.source_path.name):
-                file_item = ModpackTreeItem(mod_item)
-                file_item.set_as_file(file_pair)
-
-                # Restore selection state from previous pages
-                file_path = str(file_pair.source_path)
-                if file_path in self._selected_file_paths:
-                    file_item.setCheckState(0, Qt.CheckState.Checked)
-                else:
-                    file_item.setCheckState(0, Qt.CheckState.Unchecked)
-
-                # Get handler name
-                handler_name = self._get_handler_name(file_pair)
-                file_item.setText(1, handler_name)
+            mod_id = group_id
+            files = grouped_value
+            self._add_mod_group(self, mod_id, files)
 
         self.expandAll()
 
@@ -225,6 +217,41 @@ class ModpackTreeWidget(QTreeWidget):
             end_idx,
             len(self._file_pairs),
         )
+
+    def _add_mod_group(
+        self,
+        parent: QTreeWidget | QTreeWidgetItem,
+        mod_id: str,
+        files: list[LanguageFilePair],
+    ) -> None:
+        """Add a mod group and its file children."""
+
+        mod_item = ModpackTreeItem(parent)
+        total_mod_files = len(self._all_mod_groups[mod_id])
+        page_mod_files = len(files)
+
+        # Show page info if mod has files on multiple pages
+        if total_mod_files > page_mod_files:
+            mod_item.setText(0, f"{mod_id} ({page_mod_files}/{total_mod_files})")
+        else:
+            mod_item.set_as_mod_group(mod_id, len(files))
+
+        mod_item.is_mod_group = True
+        mod_item.mod_id = mod_id
+        mod_item.setFlags(mod_item.flags() | Qt.ItemFlag.ItemIsAutoTristate)
+
+        for file_pair in sorted(files, key=lambda f: f.source_path.name):
+            file_item = ModpackTreeItem(mod_item)
+            file_item.set_as_file(file_pair)
+
+            file_path = str(file_pair.source_path)
+            if file_path in self._selected_file_paths:
+                file_item.setCheckState(0, Qt.CheckState.Checked)
+            else:
+                file_item.setCheckState(0, Qt.CheckState.Unchecked)
+
+            handler_name = self._get_handler_name(file_pair)
+            file_item.setText(1, handler_name)
 
     def next_page(self) -> None:
         """Load next page."""
@@ -262,6 +289,38 @@ class ModpackTreeWidget(QTreeWidget):
             groups[mod_id].append(pair)
 
         return dict(groups)
+
+    def _group_by_bundle(
+        self,
+        file_pairs: list[LanguageFilePair],
+    ) -> dict[str, list[LanguageFilePair] | dict[str, list[LanguageFilePair]]]:
+        """Group file pairs by bundle container when graph metadata is available."""
+        grouped: dict[str, list[LanguageFilePair] | dict[str, list[LanguageFilePair]]] = {}
+
+        for pair in file_pairs:
+            mod_id = pair.mod_id or "unknown"
+            bundle_id = self._bundle_id_for_mod(mod_id)
+            if bundle_id:
+                bundle_group = grouped.setdefault(bundle_id, {})
+                if isinstance(bundle_group, dict):
+                    bundle_group.setdefault(mod_id, []).append(pair)
+                continue
+
+            mod_group = grouped.setdefault(mod_id, [])
+            if isinstance(mod_group, list):
+                mod_group.append(pair)
+
+        return grouped
+
+    def _bundle_id_for_mod(self, mod_id: str) -> str | None:
+        graph_context = getattr(self, "_graph_context", None)
+        mods = getattr(graph_context, "mods", None)
+        if not isinstance(mods, dict):
+            return None
+
+        mod = mods.get(mod_id)
+        bundled_in = getattr(mod, "bundled_in", None)
+        return bundled_in if isinstance(bundled_in, str) and bundled_in else None
 
     def _get_handler_name(self, file_pair: LanguageFilePair) -> str:
         """Get handler name for a file.

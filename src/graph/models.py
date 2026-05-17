@@ -69,6 +69,14 @@ class ModInfo(BaseModel):
         default="",
         description="Metadata entry path inside the jar, or file path",
     )
+    bundled_in: str | None = Field(
+        default=None,
+        description="Container mod id if this mod is embedded in a bundled jar",
+    )
+    embedded_mod_ids: list[str] = Field(
+        default_factory=list,
+        description="Mod ids embedded in this container mod",
+    )
     description: str = Field(default="", description="Declared mod description")
     dependencies: list[ModDependency] = Field(default_factory=list)
 

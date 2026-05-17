@@ -10,6 +10,7 @@ import zipfile
 from dataclasses import dataclass, field
 from glob import escape as glob_escape
 from glob import iglob
+from io import BytesIO
 from pathlib import Path
 
 from ..handlers.base import create_default_registry
@@ -39,6 +40,7 @@ class TranslationFile:
     )
     lang_type: str = "source"  # source, target, other
     jar_name: str | None = None
+    outer_jar_name: str | None = None
     category: str = ""
 
 
@@ -686,6 +688,63 @@ class ModpackScanner:
                     except (zipfile.BadZipFile, OSError, KeyError) as e:
                         logger.debug("JAR에서 파일 추출 실패 (%s): %s", entry, e)
 
+                if entry.startswith("META-INF/jarjar/") and entry.endswith(".jar"):
+                    try:
+                        self._extract_from_nested_jar(
+                            zf,
+                            entry,
+                            extract_dir,
+                            result,
+                            outer_jar_name=jar_name,
+                        )
+                    except (zipfile.BadZipFile, OSError, KeyError) as e:
+                        logger.debug("Nested JAR 처리 실패 (%s): %s", entry, e)
+
+    def _extract_from_nested_jar(
+        self,
+        outer_jar: zipfile.ZipFile,
+        nested_entry: str,
+        extract_dir: Path,
+        result: ScanResult,
+        *,
+        outer_jar_name: str,
+    ) -> None:
+        """Extract translation files from a nested JarJar dependency."""
+        nested_jar_name = os.path.basename(nested_entry)
+        nested_display_name = (
+            Path(nested_jar_name).stem.split("-")[0].replace("_", " ").title()
+        )
+        nested_extract_dir = extract_dir / "META-INF" / "jarjar" / nested_jar_name
+        nested_extract_dir.mkdir(parents=True, exist_ok=True)
+
+        with zipfile.ZipFile(BytesIO(outer_jar.read(nested_entry)), "r") as nested:
+            for entry in nested.namelist():
+                if not self._should_extract_from_jar(entry):
+                    continue
+
+                try:
+                    nested.extract(entry, nested_extract_dir)
+                    extracted_path = nested_extract_dir / entry
+                    if extracted_path.is_file() and self._is_translation_file(
+                        str(extracted_path)
+                    ):
+                        result.translation_files.append(
+                            TranslationFile(
+                                input_path=str(extracted_path),
+                                file_type="mod",
+                                jar_name=nested_jar_name,
+                                outer_jar_name=outer_jar_name,
+                                category=f"Mod: {nested_display_name}",
+                            )
+                        )
+                except (zipfile.BadZipFile, OSError, KeyError) as e:
+                    logger.debug(
+                        "Nested JAR에서 파일 추출 실패 (%s/%s): %s",
+                        nested_entry,
+                        entry,
+                        e,
+                    )
+
     async def _extract_from_jar(
         self, modpack_path: Path, jar_path: str, result: ScanResult
     ) -> None:
@@ -710,6 +769,8 @@ class ModpackScanner:
             "/worldgen/",
             "/dimension/",
             "/dimension_type/",
+            "/datagen/",
+            "datagen/",
             "\\recipes\\",
             "\\tags\\",
             "\\loot_tables\\",
@@ -718,6 +779,8 @@ class ModpackScanner:
             "\\worldgen\\",
             "\\dimension\\",
             "\\dimension_type\\",
+            "\\datagen\\",
+            "datagen\\",
         ]
 
         for excluded in excluded_dirs:
@@ -830,7 +893,7 @@ class ModpackScanner:
             assets_idx = parts.index("assets")
             if assets_idx + 1 < len(parts):
                 namespace = parts[assets_idx + 1]
-                return namespace, (mod_name if mod_name else namespace)
+                return namespace, namespace
         except ValueError:
             pass
 

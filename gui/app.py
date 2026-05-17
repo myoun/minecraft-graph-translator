@@ -46,6 +46,7 @@ class MainWindow(QMainWindow):
             "modpack_path": None,
             "output_path": None,
             "scan_result": None,
+            "graph_context": None,
             "selected_files": [],
             "pipeline_config": {},
             "pipeline_result": None,
@@ -291,7 +292,7 @@ class MainWindow(QMainWindow):
         if hasattr(self, "loading_dialog") and self.loading_dialog:
             self.loading_dialog.set_message(message)
 
-    def _on_scan_complete(self, scan_result: object) -> None:
+    def _on_scan_complete(self, scan_result: object, graph_context: object) -> None:
         """Handle scan completion.
 
         Args:
@@ -306,6 +307,7 @@ class MainWindow(QMainWindow):
 
         result: ScanResult = scan_result  # type: ignore[assignment]
         self.state["scan_result"] = result
+        self.state["graph_context"] = graph_context
 
         # Update scan result view
         self.scan_result_view.set_scan_result(result)
@@ -343,7 +345,7 @@ class MainWindow(QMainWindow):
 
         # Load files into category selection view
         file_pairs = scan_result.all_translation_pairs
-        self.category_select_view.load_files(file_pairs)
+        self.category_select_view.load_files(file_pairs, self.state.get("graph_context"))
 
         # Move to category selection
         self.go_to_step(3)

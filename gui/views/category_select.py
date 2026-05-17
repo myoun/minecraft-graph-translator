@@ -167,11 +167,16 @@ class CategorySelectionView(QWidget):
         self.back_button.clicked.connect(self._on_back_clicked)
         self.next_button.clicked.connect(self._on_next_clicked)
 
-    def load_files(self, file_pairs: list[LanguageFilePair]) -> None:
+    def load_files(
+        self,
+        file_pairs: list[LanguageFilePair],
+        graph_context: object | None = None,
+    ) -> None:
         """Load file pairs into tree with loading dialog.
 
         Args:
             file_pairs: List of language file pairs
+            graph_context: Optional dependency graph context for grouping
         """
         from PySide6.QtCore import QTimer
 
@@ -193,7 +198,7 @@ class CategorySelectionView(QWidget):
 
         # Load files (this may take time)
         def do_load() -> None:
-            self.tree_widget.load_files(file_pairs)
+            self.tree_widget.load_files(file_pairs, graph_context)
             self._update_stats()
             loading_dialog.close()
             logger.info("Loaded %d files for selection", len(file_pairs))

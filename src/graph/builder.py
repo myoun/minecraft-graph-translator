@@ -7,6 +7,7 @@ import json
 import logging
 import tomllib
 import zipfile
+from io import BytesIO
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +19,7 @@ FABRIC_METADATA = "fabric.mod.json"
 FORGE_METADATA = "META-INF/mods.toml"
 NEOFORGE_METADATA = "META-INF/neoforge.mods.toml"
 LEGACY_FORGE_METADATA = "mcmod.info"
+JARJAR_METADATA = "META-INF/jarjar/metadata.json"
 
 
 class DependencyGraphBuilder:
@@ -70,44 +72,16 @@ class DependencyGraphBuilder:
             with zipfile.ZipFile(jar_path, "r") as jar:
                 names = set(jar.namelist())
                 manifest = self._read_manifest(jar, names)
-
-                if FABRIC_METADATA in names:
-                    return self._parse_fabric_json(
-                        self._read_json(jar, FABRIC_METADATA),
-                        jar_path,
-                        FABRIC_METADATA,
-                    )
-
-                if NEOFORGE_METADATA in names:
-                    return self._parse_mods_toml(
-                        self._read_toml(jar, NEOFORGE_METADATA),
-                        jar_path,
-                        NEOFORGE_METADATA,
-                        ModLoader.NEOFORGE,
-                        manifest,
-                    )
-
-                if FORGE_METADATA in names:
-                    toml_data = self._read_toml(jar, FORGE_METADATA)
-                    loader = (
-                        ModLoader.NEOFORGE
-                        if self._looks_like_neoforge_toml(toml_data)
-                        else ModLoader.FORGE
-                    )
-                    return self._parse_mods_toml(
-                        toml_data,
-                        jar_path,
-                        FORGE_METADATA,
-                        loader,
-                        manifest,
-                    )
-
-                if LEGACY_FORGE_METADATA in names:
-                    return self._parse_mcmod_info(
-                        self._read_json(jar, LEGACY_FORGE_METADATA),
-                        jar_path,
-                        LEGACY_FORGE_METADATA,
-                    )
+                mods = self._scan_open_jar(
+                    jar,
+                    names,
+                    jar_path,
+                    manifest,
+                    metadata_prefix="",
+                )
+                mods.extend(self._scan_jarjar_nested_jars(jar, names, jar_path))
+                self._attach_embedded_mods(mods)
+                return mods
 
         except (zipfile.BadZipFile, OSError, KeyError, json.JSONDecodeError) as e:
             logger.debug("Failed to scan mod metadata from %s: %s", jar_path, e)
@@ -115,6 +89,159 @@ class DependencyGraphBuilder:
             logger.debug("Failed to parse TOML metadata from %s: %s", jar_path, e)
 
         return []
+
+    def _scan_open_jar(
+        self,
+        jar: zipfile.ZipFile,
+        names: set[str],
+        jar_path: Path,
+        manifest: dict[str, str],
+        *,
+        metadata_prefix: str,
+        bundled_in: str | None = None,
+    ) -> list[ModInfo]:
+        """Scan an already opened jar."""
+        if FABRIC_METADATA in names:
+            return self._with_bundle_parent(
+                self._parse_fabric_json(
+                    self._read_json(jar, FABRIC_METADATA),
+                    jar_path,
+                    f"{metadata_prefix}{FABRIC_METADATA}",
+                ),
+                bundled_in,
+            )
+
+        if NEOFORGE_METADATA in names:
+            return self._with_bundle_parent(
+                self._parse_mods_toml(
+                    self._read_toml(jar, NEOFORGE_METADATA),
+                    jar_path,
+                    f"{metadata_prefix}{NEOFORGE_METADATA}",
+                    ModLoader.NEOFORGE,
+                    manifest,
+                ),
+                bundled_in,
+            )
+
+        if FORGE_METADATA in names:
+            toml_data = self._read_toml(jar, FORGE_METADATA)
+            loader = (
+                ModLoader.NEOFORGE
+                if self._looks_like_neoforge_toml(toml_data)
+                else ModLoader.FORGE
+            )
+            return self._with_bundle_parent(
+                self._parse_mods_toml(
+                    toml_data,
+                    jar_path,
+                    f"{metadata_prefix}{FORGE_METADATA}",
+                    loader,
+                    manifest,
+                ),
+                bundled_in,
+            )
+
+        if LEGACY_FORGE_METADATA in names:
+            return self._with_bundle_parent(
+                self._parse_mcmod_info(
+                    self._read_json(jar, LEGACY_FORGE_METADATA),
+                    jar_path,
+                    f"{metadata_prefix}{LEGACY_FORGE_METADATA}",
+                ),
+                bundled_in,
+            )
+
+        return []
+
+    def _scan_jarjar_nested_jars(
+        self,
+        jar: zipfile.ZipFile,
+        names: set[str],
+        jar_path: Path,
+    ) -> list[ModInfo]:
+        """Scan NeoForge JarJar nested jars."""
+        nested_paths = self._jarjar_nested_paths(jar, names)
+        if not nested_paths:
+            return []
+
+        outer_mod_ids = [
+            mod.mod_id
+            for mod in self._scan_open_jar(
+                jar,
+                names,
+                jar_path,
+                self._read_manifest(jar, names),
+                metadata_prefix="",
+            )
+        ]
+        bundled_in = outer_mod_ids[0] if outer_mod_ids else None
+
+        nested_mods: list[ModInfo] = []
+        for nested_path in nested_paths:
+            try:
+                with zipfile.ZipFile(BytesIO(jar.read(nested_path)), "r") as nested:
+                    nested_names = set(nested.namelist())
+                    nested_manifest = self._read_manifest(nested, nested_names)
+                    nested_mods.extend(
+                        self._scan_open_jar(
+                            nested,
+                            nested_names,
+                            jar_path,
+                            nested_manifest,
+                            metadata_prefix=f"{nested_path}!",
+                            bundled_in=bundled_in,
+                        )
+                    )
+            except (zipfile.BadZipFile, OSError, KeyError, json.JSONDecodeError) as e:
+                logger.debug("Failed to scan nested jar %s in %s: %s", nested_path, jar_path, e)
+            except tomllib.TOMLDecodeError as e:
+                logger.debug("Failed to parse nested TOML %s in %s: %s", nested_path, jar_path, e)
+
+        return nested_mods
+
+    def _jarjar_nested_paths(
+        self,
+        jar: zipfile.ZipFile,
+        names: set[str],
+    ) -> list[str]:
+        if JARJAR_METADATA in names:
+            data = self._read_json(jar, JARJAR_METADATA)
+            if isinstance(data, dict) and isinstance(data.get("jars"), list):
+                paths: list[str] = []
+                for item in data["jars"]:
+                    if isinstance(item, dict):
+                        path = self._string_value(item.get("path"))
+                        if path and path in names:
+                            paths.append(path)
+                return paths
+
+        return sorted(
+            name
+            for name in names
+            if name.startswith("META-INF/jarjar/") and name.endswith(".jar")
+        )
+
+    def _with_bundle_parent(
+        self,
+        mods: list[ModInfo],
+        bundled_in: str | None,
+    ) -> list[ModInfo]:
+        if bundled_in is None:
+            return mods
+        for mod in mods:
+            mod.bundled_in = bundled_in
+        return mods
+
+    def _attach_embedded_mods(self, mods: list[ModInfo]) -> None:
+        embedded_by_parent: dict[str, list[str]] = {}
+        for mod in mods:
+            if mod.bundled_in:
+                embedded_by_parent.setdefault(mod.bundled_in, []).append(mod.mod_id)
+
+        for mod in mods:
+            embedded = embedded_by_parent.get(mod.mod_id)
+            if embedded:
+                mod.embedded_mod_ids = sorted(embedded)
 
     def _read_json(self, jar: zipfile.ZipFile, entry: str) -> Any:
         with jar.open(entry) as file:

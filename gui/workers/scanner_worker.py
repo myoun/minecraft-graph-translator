@@ -23,7 +23,7 @@ class ScannerWorker(QThread):
     
     # Signals
     scanProgress = Signal(str, int, int)  # message, current, total
-    scanComplete = Signal(object)  # ScanResult
+    scanComplete = Signal(object, object)  # ScanResult, GraphContext
     scanError = Signal(str)  # error message
     
     def __init__(
@@ -69,6 +69,7 @@ class ScannerWorker(QThread):
         """Run the scanning operation."""
         try:
             from src import ModpackScanner
+            from src.graph import DependencyGraphBuilder
             from gui.i18n import get_translator
 
             t = get_translator()
@@ -89,6 +90,9 @@ class ScannerWorker(QThread):
 
             try:
                 result = loop.run_until_complete(scanner.scan(self.modpack_path))
+                graph_context = loop.run_until_complete(
+                    DependencyGraphBuilder().scan_modpack(self.modpack_path)
+                )
             finally:
                 loop.close()
             
@@ -96,7 +100,7 @@ class ScannerWorker(QThread):
                 return
 
             self.scanProgress.emit(t.t("scanner.complete"), 100, 100)
-            self.scanComplete.emit(result)
+            self.scanComplete.emit(result, graph_context)
             
             logger.info(
                 "Scan complete: %d source files, %d target files, total: %d",
